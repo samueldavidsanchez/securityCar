@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Builds
+.next/
+dist/
+.turbo/
+apps/mobile/.expo/
+apps/mobile/dist/
+*.tsbuildinfo
+
+# Vercel
+.vercel/
+
+# Env files (keep .env.example)
+.env
+.env.local
+.env*.local
+apps/mobile/.env
+scripts/.env.vercel
+
+# Misc
+*.log
+.DS_Store
+
+# Brand source — heavy PDF kept local only (needed logos live in apps/web/public/brand/)
+Manual de maraca/*.pdf

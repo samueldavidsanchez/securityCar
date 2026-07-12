@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(npm *)",
+      "PowerShell(New-Item *)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Samuel Sanchez\\\\Documents\\\\DEV\\\\Securitycar\\\\apps\\\\web\\\\node_modules\\\\next\\\\dist\\\\docs\" -ErrorAction SilentlyContinue | Select-Object Name; Write-Output \"---VERSION---\"; \\(Get-Content \"C:\\\\Users\\\\Samuel Sanchez\\\\Documents\\\\DEV\\\\Securitycar\\\\apps\\\\web\\\\node_modules\\\\next\\\\package.json\" | ConvertFrom-Json\\).version)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Samuel Sanchez\\\\Documents\\\\DEV\\\\Securitycar\\\\node_modules\\\\next\\\\dist\\\\docs\" -Recurse -File | Where-Object { $_.Name -in @\\('version-16.md','16-proxy.md','proxy.md','15-route-handlers.md','route.md','authentication.md','next-request.md'\\) } | Select-Object -ExpandProperty FullName)",
+      "PowerShell(Stop-Job *)",
+      "PowerShell(Get-Job *)",
+      "PowerShell(Get-Process *)",
+      "Bash(mkdir -p apps/web/public/brand)",
+      "Bash(cp \"Manual de maraca/Logo-Vivancar.png\" apps/web/public/brand/logo-dark.png)",
+      "Bash(cp \"Manual de maraca/Logo-Vivancar-blanco \\(2\\).png\" apps/web/public/brand/logo-white.png)",
+      "Bash(npx create-expo-app@latest mobile --template blank-typescript --yes)",
+      "WebFetch(domain:docs.expo.dev)",
+      "Bash(npx expo *)",
+      "Bash(cat app.json)",
+      "Bash(cat tsconfig.json)",
+      "Bash(cat babel.config.js)",
+      "Bash(cat metro.config.js)",
+      "Bash(npx next *)",
+      "Bash(grep -vE '^\\\\s*$')",
+      "Bash(npm install *)",
+      "Bash(node -e \"console.log\\(require.resolve\\('expo-router/_ctx-shared', {paths:['C:/Users/Samuel Sanchez/Documents/DEV/Securitycar/node_modules/@expo/cli']}\\)\\)\")",
+      "Bash(npm dedupe *)",
+      "Bash(break)",
+      "Bash(pkill -f \"expo start\")",
+      "Bash(grep -vE \"^$\" /tmp/expo2.log)",
+      "Bash(npx tsc *)",
+      "Bash(echo \"=== exit: $? ===\")",
+      "Bash(pkill -f \"next dev\")",
+      "Bash(vercel whoami *)",
+      "Bash(git init *)",
+      "Bash(git config *)",
+      "Bash(git add *)",
+      "Bash(grep -iE 'node_modules|\\\\.next/|\\\\.env$|\\\\.env\\\\.local|\\\\.expo/|\\\\.vercel/')",
+      "Bash(xargs -0 -I{} du -h \"{}\")",
+      "Bash(node -e \"console.log\\(JSON.stringify\\(require\\('./apps/web/vercel.json'\\),null,0\\)\\) && console.log\\('VALID'\\)\")",
+      "Bash(chmod +x scripts/vercel-push-env.sh)",
+      "Bash(git diff *)"
+    ]
+  }
+}
