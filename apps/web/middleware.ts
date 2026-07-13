@@ -7,7 +7,7 @@ const PUBLIC_PATHS = ['/login', '/register', '/forgot-password']
  * Runs on every matched request (Node.js runtime in Next.js 16).
  * Refreshes the Supabase session cookie and gates access to the app.
  */
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request })
 
   const supabase = createServerClient(
