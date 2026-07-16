@@ -8,9 +8,10 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <Image
             src="/brand/logo-white.png"
             alt="vivancar"
-            width={180}
-            height={31}
+            width={2085}
+            height={364}
             priority
+            unoptimized
             className="mb-3 h-8 w-auto"
           />
           <p className="text-sm text-[--color-text-muted]">Monitoreo y seguridad vehicular</p>

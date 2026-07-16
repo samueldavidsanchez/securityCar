@@ -32,9 +32,10 @@ export function NavBar() {
           <Image
             src="/brand/logo-white.png"
             alt="vivancar"
-            width={130}
-            height={23}
+            width={2085}
+            height={364}
             priority
+            unoptimized
             className="h-6 w-auto"
           />
         </div>
