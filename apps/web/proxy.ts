@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-const PUBLIC_PATHS = ['/login', '/register', '/forgot-password']
+const PUBLIC_PATHS = ['/login', '/register', '/forgot-password', '/auth/callback']
 
 /**
  * Runs on every matched request (Node.js runtime in Next.js 16).

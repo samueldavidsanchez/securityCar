@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
+import { GoogleButton } from '@/components/auth/GoogleButton'
 import { createClient } from '@/lib/supabase/client'
 
 export default function RegisterPage() {
@@ -77,6 +78,12 @@ export default function RegisterPage() {
         <Button type="submit" loading={loading}>
           Registrarme
         </Button>
+        <div className="relative flex items-center gap-3 py-1">
+          <div className="h-px flex-1 bg-[--color-border]" />
+          <span className="text-xs text-[--color-text-muted]">o</span>
+          <div className="h-px flex-1 bg-[--color-border]" />
+        </div>
+        <GoogleButton />
         <p className="text-center text-sm text-[--color-text-muted]">
           ¿Ya tienes cuenta?{' '}
           <Link href="/login" className="text-[--color-accent] hover:underline">

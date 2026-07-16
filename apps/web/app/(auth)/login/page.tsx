@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
+import { GoogleButton } from '@/components/auth/GoogleButton'
 import { createClient } from '@/lib/supabase/client'
 
 export default function LoginPage() {
@@ -56,6 +57,12 @@ export default function LoginPage() {
         <Button type="submit" loading={loading}>
           Entrar
         </Button>
+        <div className="relative flex items-center gap-3 py-1">
+          <div className="h-px flex-1 bg-[--color-border]" />
+          <span className="text-xs text-[--color-text-muted]">o</span>
+          <div className="h-px flex-1 bg-[--color-border]" />
+        </div>
+        <GoogleButton />
         <div className="flex justify-between text-sm text-[--color-text-muted]">
           <Link href="/forgot-password" className="hover:text-[--color-text-secondary]">
             ¿Olvidaste tu contraseña?
