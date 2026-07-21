@@ -1,13 +1,31 @@
+import type { VehicleRole } from './sharing'
+
+export type DeviceStatus = 'provisioned' | 'active' | 'retired'
+
+/** Hardware asociado al vehículo. Se resuelve por join desde `devices`. */
+export interface VehicleDevice {
+  imei: string
+  flespi_device_id: number
+  status: DeviceStatus
+}
+
 export interface Vehicle {
   id: string
   owner_id: string
-  flespi_device_id: number
+  device_id: string
   alias: string
   plate: string | null
   make: string | null
   model: string | null
   year: number | null
   created_at: string
+  device: VehicleDevice
+  /**
+   * Rol del usuario que hace la petición sobre este vehículo. Campo calculado
+   * en Postgres (`effective_role`), no una columna: permite a la UI ocultar
+   * acciones que el servidor va a rechazar de todas formas.
+   */
+  effective_role: VehicleRole
 }
 
 export interface VehicleWithStatus extends Vehicle {

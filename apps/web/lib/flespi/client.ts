@@ -1,4 +1,5 @@
 import 'server-only'
+import { FlespiEnvelopeSchema } from '@securitycar/shared'
 
 const FLESPI_BASE = 'https://flespi.io'
 
@@ -18,7 +19,12 @@ function token(): string {
   return t
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+/**
+ * Devuelve `result` validado como lista de objetos. La validación es de
+ * estructura, no de campos: los nombres de parámetros dependen del protocolo
+ * del dispositivo y se leen luego de forma defensiva en los transforms.
+ */
+async function requestResult(path: string, init?: RequestInit): Promise<Record<string, unknown>[]> {
   const res = await fetch(`${FLESPI_BASE}${path}`, {
     ...init,
     headers: {
@@ -35,11 +41,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new FlespiError(`Flespi ${res.status}: ${body || res.statusText}`, res.status)
   }
 
-  return res.json() as Promise<T>
-}
-
-interface FlespiEnvelope<T> {
-  result: T[]
+  const json = await res.json()
+  const parsed = FlespiEnvelopeSchema.safeParse(json)
+  if (!parsed.success) {
+    throw new FlespiError('Respuesta de Flespi con formato inesperado', 502)
+  }
+  return parsed.data.result
 }
 
 /**
@@ -53,25 +60,41 @@ export async function getLatestMessage(
   const data = encodeURIComponent(
     JSON.stringify({ count: 1, reverse: true, fields: fields.join(',') })
   )
-  const res = await request<FlespiEnvelope<Record<string, unknown>>>(
-    `/gw/devices/${deviceId}/messages?data=${data}`
-  )
-  return res.result[0] ?? null
+  const result = await requestResult(`/gw/devices/${deviceId}/messages?data=${data}`)
+  return result[0] ?? null
 }
 
 /**
- * Fetch calculated trips for a device within a time window (unix seconds).
+ * Viajes calculados por Flespi dentro de una ventana (unix seconds).
+ *
+ * Usa el CALCULATOR de trips, no los mensajes crudos. El endpoint anterior
+ * (`/messages` con {from,to}) devolvía toda la telemetría del rango —decenas de
+ * miles de mensajes por día, con timeouts y coste de tráfico— y encima no eran
+ * viajes. Un calculator entrega los intervalos ya agregados (inicio, fin,
+ * distancia, duración).
+ *
+ * Requiere `FLESPI_TRIPS_CALC_ID`: el id del calculator de trips creado en el
+ * panel de Flespi y asignado a los dispositivos. Sin él, devuelve [] en vez de
+ * fallar, para que la pantalla de historial muestre "sin viajes" y no un error.
  */
 export async function getTrips(
   deviceId: number,
   from: number,
   to: number
 ): Promise<Record<string, unknown>[]> {
-  const data = encodeURIComponent(JSON.stringify({ from, to }))
-  const res = await request<FlespiEnvelope<Record<string, unknown>>>(
-    `/gw/devices/${deviceId}/messages?data=${data}`
+  const calcId = process.env.FLESPI_TRIPS_CALC_ID
+  if (!calcId) {
+    console.warn('[flespi] FLESPI_TRIPS_CALC_ID no configurado — sin viajes')
+    return []
+  }
+
+  // Filtro por solapamiento temporal con la ventana pedida, más reciente
+  // primero. El interval-selector `all` recorre todos los intervalos del calc
+  // para el dispositivo; `data` los acota.
+  const data = encodeURIComponent(JSON.stringify({ from, to, reverse: true }))
+  return requestResult(
+    `/gw/calcs/${calcId}/devices/${deviceId}/intervals/all?data=${data}`
   )
-  return res.result
 }
 
 /**
@@ -81,12 +104,9 @@ export async function sendCommand(
   deviceId: number,
   command: Record<string, unknown>
 ): Promise<Record<string, unknown>> {
-  const res = await request<FlespiEnvelope<Record<string, unknown>>>(
-    `/gw/devices/${deviceId}/commands`,
-    {
-      method: 'POST',
-      body: JSON.stringify([command]),
-    }
-  )
-  return res.result[0] ?? {}
+  const result = await requestResult(`/gw/devices/${deviceId}/commands`, {
+    method: 'POST',
+    body: JSON.stringify([command]),
+  })
+  return result[0] ?? {}
 }

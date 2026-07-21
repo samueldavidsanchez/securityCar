@@ -5,7 +5,11 @@ import { NextResponse, type NextRequest } from 'next/server'
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/map'
+  // Solo rutas internas: `next` viene de la URL, así que sin validar convertiría
+  // el callback en un redirector abierto.
+  const requested = searchParams.get('next')
+  const next =
+    requested && requested.startsWith('/') && !requested.startsWith('//') ? requested : '/map'
 
   if (code) {
     const cookieStore = await cookies()

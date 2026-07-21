@@ -2,6 +2,7 @@ import { Link, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { GoogleButton } from '@/components/GoogleButton'
 import { Button, Field } from '@/components/ui'
 import { supabase } from '@/lib/supabase'
 import { colors } from '@/theme/colors'
@@ -53,6 +54,14 @@ export default function Register() {
         {error && <Text style={styles.error}>{error}</Text>}
         {notice && <Text style={styles.notice}>{notice}</Text>}
         <Button label="Registrarme" onPress={onSubmit} loading={loading} />
+
+        <View style={styles.divider}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>o</Text>
+          <View style={styles.dividerLine} />
+        </View>
+        <GoogleButton onSuccess={() => router.replace('/(tabs)')} />
+
         <Link href="/login" style={styles.center}>
           ¿Ya tienes cuenta? <Text style={{ color: colors.accent }}>Inicia sesión</Text>
         </Link>
@@ -67,5 +76,8 @@ const styles = StyleSheet.create({
   title: { fontSize: 22, fontWeight: '700', color: colors.textPrimary },
   error: { color: colors.danger, fontSize: 13 },
   notice: { color: colors.success, fontSize: 13 },
+  divider: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: colors.border },
+  dividerText: { color: colors.textMuted, fontSize: 12 },
   center: { textAlign: 'center', color: colors.textMuted },
 })

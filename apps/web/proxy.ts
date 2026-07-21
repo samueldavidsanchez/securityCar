@@ -4,6 +4,16 @@ import { NextResponse, type NextRequest } from 'next/server'
 const PUBLIC_PATHS = ['/login', '/register', '/forgot-password', '/auth/callback']
 
 /**
+ * Solo se acepta una ruta interna. Sin esta comprobación, `?next=https://…`
+ * convertiría el login en un redirector abierto hacia un sitio de phishing.
+ * `//host` se rechaza porque el navegador lo interpreta como protocolo-relativo.
+ */
+function safeNext(next: string | null): string | null {
+  if (!next || !next.startsWith('/') || next.startsWith('//')) return null
+  return next
+}
+
+/**
  * Runs on every matched request (Node.js runtime in Next.js 16).
  * Refreshes the Supabase session cookie and gates access to the app.
  */
@@ -43,17 +53,24 @@ export async function proxy(request: NextRequest) {
 
   const isPublic = PUBLIC_PATHS.some(p => pathname.startsWith(p))
 
-  // Unauthenticated user trying to reach the app → send to login.
+  // Unauthenticated user trying to reach the app → send to login, remembering
+  // where they were going. Necesario para los enlaces de invitación: quien
+  // recibe uno normalmente aún no tiene sesión (o ni cuenta).
   if (!user && !isPublic) {
     const url = request.nextUrl.clone()
+    const target = pathname + url.search
     url.pathname = '/login'
+    url.search = ''
+    url.searchParams.set('next', target)
     return NextResponse.redirect(url)
   }
 
-  // Authenticated user on an auth page → send to the map.
+  // Authenticated user on an auth page → send to the map, o al destino que
+  // traía si lo hay.
   if (user && isPublic) {
     const url = request.nextUrl.clone()
-    url.pathname = '/map'
+    url.pathname = safeNext(request.nextUrl.searchParams.get('next')) ?? '/map'
+    url.search = ''
     return NextResponse.redirect(url)
   }
 

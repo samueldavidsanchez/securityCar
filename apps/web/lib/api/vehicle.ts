@@ -1,5 +1,6 @@
-import type { SupabaseClient, User } from '@supabase/supabase-js'
-import type { Vehicle } from '@securitycar/shared'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Vehicle, VehicleRole } from '@securitycar/shared'
+import { hasRole } from '@securitycar/shared'
 import { SupabaseVehicleRepository } from '@/repositories/VehicleRepository'
 
 export class VehicleNotFoundError extends Error {
@@ -9,17 +10,34 @@ export class VehicleNotFoundError extends Error {
   }
 }
 
+export class InsufficientRoleError extends Error {
+  constructor() {
+    super('No tienes permisos suficientes sobre este vehículo')
+    this.name = 'InsufficientRoleError'
+  }
+}
+
 /**
- * Loads a vehicle owned by the user, or throws VehicleNotFoundError.
- * Uses the caller's authenticated Supabase client so RLS applies.
+ * Carga un vehículo al que el usuario tiene acceso y comprueba que su rol
+ * alcanza el mínimo exigido.
+ *
+ * La visibilidad la aplica RLS (dueño o fila en `vehicle_users`); aquí solo se
+ * verifica el nivel de rol. Un usuario sin acceso ninguno recibe 404 en vez de
+ * 403: distinguirlos revelaría qué IDs de vehículo existen.
+ *
+ * Reglas: lectura de telemetría → 'viewer'; envío de comandos → 'driver';
+ * modificar o borrar el vehículo y gestionar accesos → 'owner'.
  */
-export async function loadOwnedVehicle(
+export async function loadAccessibleVehicle(
   supabase: SupabaseClient,
-  user: User,
-  vehicleId: string
+  vehicleId: string,
+  requiredRole: VehicleRole = 'viewer'
 ): Promise<Vehicle> {
   const repo = new SupabaseVehicleRepository(supabase)
-  const vehicle = await repo.findById(vehicleId, user.id)
+  const vehicle = await repo.findById(vehicleId)
   if (!vehicle) throw new VehicleNotFoundError()
+  if (!vehicle.effective_role || !hasRole(vehicle.effective_role, requiredRole)) {
+    throw new InsufficientRoleError()
+  }
   return vehicle
 }

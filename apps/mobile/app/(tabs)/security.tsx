@@ -1,4 +1,4 @@
-import type { CommandType } from '@securitycar/shared'
+import { hasRole, type CommandType } from '@securitycar/shared'
 import { useState } from 'react'
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -16,6 +16,10 @@ export default function Security() {
   const [pending, setPending] = useState<CommandType | null>(null)
 
   if (!selected) return <EmptyState />
+
+  // El servidor rechaza los comandos de un 'viewer' (403) y la política de
+  // command_logs también: esto solo evita ofrecer un botón que va a fallar.
+  const canCommand = hasRole(selected.effective_role, 'driver')
 
   function confirmAndSend(type: CommandType, message: string) {
     Alert.alert('Confirmar acción', message, [
@@ -48,12 +52,24 @@ export default function Security() {
         <Text style={styles.title}>Seguridad</Text>
         <Text style={styles.subtitle}>{selected.alias}</Text>
 
-        <Card style={styles.warning}>
-          <Text style={styles.warningText}>
-            ⚠️ Estas acciones afectan físicamente al vehículo. Úsalas con cuidado.
-          </Text>
-        </Card>
+        {!canCommand && (
+          <Card>
+            <Text style={styles.readOnly}>
+              Tienes acceso de solo lectura a este vehículo. Pide al propietario que te
+              asigne el rol de conductor para poder enviar comandos.
+            </Text>
+          </Card>
+        )}
 
+        {canCommand && (
+          <Card style={styles.warning}>
+            <Text style={styles.warningText}>
+              ⚠️ Estas acciones afectan físicamente al vehículo. Úsalas con cuidado.
+            </Text>
+          </Card>
+        )}
+
+        {canCommand && (
         <Card>
           <View style={{ gap: 12 }}>
             {status?.engine_blocked ? (
@@ -93,6 +109,7 @@ export default function Security() {
             />
           </View>
         </Card>
+        )}
       </ScrollView>
     </SafeAreaView>
   )
@@ -105,4 +122,5 @@ const styles = StyleSheet.create({
   subtitle: { color: colors.textMuted, marginTop: -6 },
   warning: { backgroundColor: colors.warning + '14', borderColor: colors.warning + '55' },
   warningText: { color: colors.warning, fontSize: 13 },
+  readOnly: { color: colors.textMuted, fontSize: 13 },
 })

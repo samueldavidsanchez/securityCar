@@ -2,6 +2,7 @@ import { Link, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { GoogleButton } from '@/components/GoogleButton'
 import { Button, Field } from '@/components/ui'
 import { supabase } from '@/lib/supabase'
 import { colors } from '@/theme/colors'
@@ -49,6 +50,14 @@ export default function Login() {
           />
           {error && <Text style={styles.error}>{error}</Text>}
           <Button label="Entrar" onPress={onSubmit} loading={loading} />
+
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>o</Text>
+            <View style={styles.dividerLine} />
+          </View>
+          <GoogleButton onSuccess={() => router.replace('/(tabs)')} />
+
           <View style={styles.links}>
             <Link href="/forgot-password" style={styles.linkMuted}>
               ¿Olvidaste tu contraseña?
@@ -71,6 +80,9 @@ const styles = StyleSheet.create({
   form: { gap: 16 },
   title: { fontSize: 18, fontWeight: '700', color: colors.textPrimary },
   error: { color: colors.danger, fontSize: 13 },
+  divider: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: colors.border },
+  dividerText: { color: colors.textMuted, fontSize: 12 },
   links: { flexDirection: 'row', justifyContent: 'space-between' },
   link: { color: colors.accent, fontWeight: '600' },
   linkMuted: { color: colors.textMuted },

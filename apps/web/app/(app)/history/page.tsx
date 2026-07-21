@@ -1,7 +1,7 @@
 'use client'
 
-import type { TripSummary } from '@securitycar/shared'
-import { formatDistance, formatDuration } from '@securitycar/shared'
+import type { TripSummary, VehicleEvent } from '@securitycar/shared'
+import { EVENT_LABEL, formatDistance, formatDuration } from '@securitycar/shared'
 import useSWR from 'swr'
 import { useVehicleContext } from '@/components/VehicleProvider'
 import { EmptyState } from '@/components/vehicle/EmptyState'
@@ -24,6 +24,10 @@ export default function HistoryPage() {
     selected ? `/api/vehicles/${selected.id}/trips` : null,
     fetcher
   )
+  const { data: events } = useSWR<VehicleEvent[]>(
+    selected ? `/api/vehicles/${selected.id}/events` : null,
+    fetcher
+  )
 
   if (!selected) return <EmptyState />
 
@@ -33,6 +37,20 @@ export default function HistoryPage() {
         <h1 className="text-xl font-semibold">Historial</h1>
         <p className="text-sm text-[--color-text-muted]">Últimos viajes · {selected.alias}</p>
       </div>
+
+      {events && events.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <h2 className="text-sm font-semibold text-[--color-text-secondary]">Eventos recientes</h2>
+          {events.slice(0, 10).map(ev => (
+            <Card key={ev.id} className="flex items-center justify-between py-2.5">
+              <span className="text-sm font-medium">{EVENT_LABEL[ev.event_type]}</span>
+              <span className="text-xs text-[--color-text-muted]">
+                {formatDateTime(ev.occurred_at)}
+              </span>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {isLoading && <p className="text-sm text-[--color-text-muted]">Cargando viajes…</p>}
 

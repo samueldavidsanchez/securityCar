@@ -1,4 +1,10 @@
-import type { GpsPosition, TelemetryData, TripSummary, VehicleStatus } from '@securitycar/shared'
+import type {
+  GpsPosition,
+  TelemetryData,
+  TripSummary,
+  VehicleEventType,
+  VehicleStatus,
+} from '@securitycar/shared'
 
 type Raw = Record<string, unknown>
 
@@ -121,17 +127,121 @@ export function toTelemetry(raw: Raw | null): TelemetryData {
   }
 }
 
+function latLng(raw: Raw, latKeys: string[], lngKeys: string[]): { lat: number; lng: number } | null {
+  const lat = num(raw, ...latKeys)
+  const lng = num(raw, ...lngKeys)
+  return lat !== null && lng !== null ? { lat, lng } : null
+}
+
+/**
+ * Transforma un INTERVALO de un calculator de trips de Flespi en TripSummary.
+ * Los intervalos exponen `begin`/`end`/`duration`/`mileage`; los nombres de
+ * los campos de posición dependen de la configuración del calculator, de ahí
+ * la lista de candidatos.
+ */
 export function toTrip(raw: Raw): TripSummary {
-  const begin = num(raw, 'trip.begin', 'begin') ?? 0
-  const end = num(raw, 'trip.end', 'end') ?? 0
+  const begin = num(raw, 'begin', 'trip.begin') ?? 0
+  const end = num(raw, 'end', 'trip.end') ?? 0
   return {
     id: String(num(raw, 'id') ?? `${begin}-${end}`),
     started_at: begin ? new Date(begin * 1000).toISOString() : '',
     ended_at: end ? new Date(end * 1000).toISOString() : '',
-    distance_km: num(raw, 'trip.mileage', 'mileage') ?? 0,
-    duration_seconds: end && begin ? end - begin : 0,
-    start_position: null,
-    end_position: null,
+    distance_km: num(raw, 'mileage', 'trip.mileage') ?? 0,
+    duration_seconds: num(raw, 'duration') ?? (end && begin ? end - begin : 0),
+    start_position: latLng(
+      raw,
+      ['begin_position.latitude', 'begin.position.latitude'],
+      ['begin_position.longitude', 'begin.position.longitude']
+    ),
+    end_position: latLng(
+      raw,
+      ['end_position.latitude', 'end.position.latitude'],
+      ['end_position.longitude', 'end.position.longitude']
+    ),
+  }
+}
+
+// ─── Webhook de eventos ────────────────────────────────────
+
+/** Un registro del webhook, ya normalizado a algo accionable. */
+export type ParsedWebhookRecord =
+  | { kind: 'command_ack'; flespiDeviceId: number; flespiCommandId: number }
+  | {
+      kind: 'event'
+      flespiDeviceId: number
+      eventType: VehicleEventType
+      occurredAt: string
+      flespiEventId: string | null
+      payload: Raw
+    }
+  | { kind: 'ignored' }
+
+/** Mapea el nombre de evento que emite Flespi a nuestro tipo de negocio. */
+const EVENT_TYPE_MAP: Record<string, VehicleEventType> = {
+  ignition_on: 'ignition_on',
+  ignition_off: 'ignition_off',
+  movement: 'movement',
+  moving: 'movement',
+  disconnected: 'disconnected',
+  connection_lost: 'disconnected',
+  low_battery: 'low_battery',
+  battery_low: 'low_battery',
+  geofence_in: 'geofence_in',
+  geofence_enter: 'geofence_in',
+  geofence_out: 'geofence_out',
+  geofence_exit: 'geofence_out',
+  sos: 'sos',
+  panic: 'sos',
+}
+
+function deviceId(raw: Raw): number | null {
+  return num(raw, 'device.id', 'device_id', 'did')
+}
+
+/**
+ * Interpreta un registro del webhook de Flespi.
+ *
+ * Solo se persisten dos cosas: ACKs de comando (para cerrar el ciclo a
+ * 'confirmed') y eventos de negocio ya tipados. La telemetría suelta sin tipo
+ * se ignora — no es un hecho de negocio y almacenarla violaría la regla de "no
+ * guardar telemetría".
+ *
+ * Los nombres de campo dependen de cómo se configuren los streams/calc de
+ * Flespi; la extracción es defensiva y el mapeo es fácil de ampliar.
+ */
+export function parseWebhookRecord(raw: Raw): ParsedWebhookRecord {
+  const did = deviceId(raw)
+  if (did === null) return { kind: 'ignored' }
+
+  // ACK de comando: Flespi reporta el id del comando ejecutado/confirmado.
+  const cmdId = num(raw, 'command.id', 'command_id', 'ackid')
+  if (cmdId !== null) {
+    return { kind: 'command_ack', flespiDeviceId: did, flespiCommandId: cmdId }
+  }
+
+  // Evento tipado.
+  const rawType = raw['event.type'] ?? raw['event'] ?? raw['name'] ?? raw['type']
+  const mapped = typeof rawType === 'string' ? EVENT_TYPE_MAP[rawType.toLowerCase()] : undefined
+
+  // Fallback: derivar ignición de la telemetría cuando venga el flag pero no un
+  // nombre de evento explícito.
+  const ignition = bool(raw, 'engine.ignition.status')
+  const eventType: VehicleEventType | null =
+    mapped ?? (ignition === true ? 'ignition_on' : ignition === false ? 'ignition_off' : null)
+
+  if (!eventType) return { kind: 'ignored' }
+
+  const ts = num(raw, 'timestamp', 'server.timestamp')
+  return {
+    kind: 'event',
+    flespiDeviceId: did,
+    eventType,
+    occurredAt: ts ? new Date(ts * 1000).toISOString() : new Date().toISOString(),
+    flespiEventId: (() => {
+      const id = raw['event.id'] ?? raw['id']
+      return typeof id === 'string' || typeof id === 'number' ? String(id) : null
+    })(),
+    payload: raw,
   }
 }
 

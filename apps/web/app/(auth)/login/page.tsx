@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
 import { GoogleButton } from '@/components/auth/GoogleButton'
+import { readNextParam } from '@/lib/next-param'
 import { createClient } from '@/lib/supabase/client'
 
 export default function LoginPage() {
@@ -27,7 +28,7 @@ export default function LoginPage() {
       setError('Credenciales inválidas')
       return
     }
-    router.push('/map')
+    router.push(readNextParam())
     router.refresh()
   }
 

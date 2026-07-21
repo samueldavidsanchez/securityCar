@@ -1,5 +1,5 @@
-import type { TripSummary } from '@securitycar/shared'
-import { formatDistance, formatDuration } from '@securitycar/shared'
+import type { TripSummary, VehicleEvent } from '@securitycar/shared'
+import { EVENT_LABEL, formatDistance, formatDuration } from '@securitycar/shared'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import useSWR from 'swr'
@@ -26,6 +26,10 @@ export default function History() {
     selected ? `/api/vehicles/${selected.id}/trips` : null,
     fetcher
   )
+  const { data: events } = useSWR<VehicleEvent[]>(
+    selected ? `/api/vehicles/${selected.id}/events` : null,
+    fetcher
+  )
 
   if (!selected) return <EmptyState />
 
@@ -35,6 +39,21 @@ export default function History() {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>Historial</Text>
         <Text style={styles.subtitle}>Últimos viajes · {selected.alias}</Text>
+
+        {events && events.length > 0 && (
+          <>
+            <Text style={styles.section}>Eventos recientes</Text>
+            {events.slice(0, 10).map(ev => (
+              <Card key={ev.id}>
+                <View style={styles.row}>
+                  <Text style={styles.tripTime}>{EVENT_LABEL[ev.event_type]}</Text>
+                  <Text style={styles.muted}>{fmt(ev.occurred_at)}</Text>
+                </View>
+              </Card>
+            ))}
+            <Text style={styles.section}>Viajes</Text>
+          </>
+        )}
 
         {isLoading && <Text style={styles.muted}>Cargando viajes…</Text>}
         {!isLoading && (!trips || trips.length === 0) && (
@@ -73,6 +92,7 @@ const styles = StyleSheet.create({
   content: { padding: 16, gap: 10 },
   title: { fontSize: 20, fontWeight: '700', color: colors.textPrimary },
   subtitle: { color: colors.textMuted, marginTop: -6, marginBottom: 4 },
+  section: { color: colors.textSecondary, fontSize: 13, fontWeight: '600', marginTop: 4 },
   muted: { color: colors.textMuted, fontSize: 13 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   metrics: { flexDirection: 'row', gap: 16 },

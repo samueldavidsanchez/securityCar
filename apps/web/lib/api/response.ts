@@ -20,6 +20,9 @@ export function handleError(err: unknown): NextResponse<ApiResponse<never>> {
   if (err instanceof Error && err.name === 'VehicleNotFoundError') {
     return fail('Vehículo no encontrado', 404)
   }
+  if (err instanceof Error && err.name === 'InsufficientRoleError') {
+    return fail(err.message, 403)
+  }
   if (err instanceof Error && err.name === 'FlespiError') {
     const status = (err as Error & { status?: number }).status ?? 502
     console.error('[flespi]', err.message)

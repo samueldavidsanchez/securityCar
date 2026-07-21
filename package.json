@@ -1,6 +1,7 @@
 {
   "name": "securitycar",
   "private": true,
+  "packageManager": "npm@11.14.1",
   "workspaces": [
     "apps/*",
     "packages/*"

@@ -24,6 +24,7 @@ Missing $ENV_FILE. Create it with your real values:
   SUPABASE_SERVICE_ROLE_KEY=...
   FLESPI_TOKEN=...
   FLESPI_WEBHOOK_SECRET=...
+  FLESPI_TRIPS_CALC_ID=...
   NEXT_PUBLIC_APP_URL=https://your-app.vercel.app
 EOF
   exit 1
@@ -31,7 +32,14 @@ fi
 
 echo "Pushing env vars to Vercel ($TARGET)…"
 while IFS='=' read -r key value; do
-  [[ "$key" =~ ^[[:space:]]*# || -z "${key// }" ]] && continue
+  # Strip trailing CR so a CRLF file (typical on Windows) doesn't push tokens
+  # with an invisible \r that breaks auth.
+  key="${key%$'\r'}"
+  value="${value%$'\r'}"
+  # Trim surrounding whitespace from the key only (values may be meaningful).
+  key="${key#"${key%%[![:space:]]*}"}"
+  key="${key%"${key##*[![:space:]]}"}"
+  [[ "$key" =~ ^# || -z "$key" ]] && continue
   # Remove the var first so re-runs don't error on duplicates.
   vercel env rm "$key" "$TARGET" --yes >/dev/null 2>&1 || true
   printf '%s' "$value" | vercel env add "$key" "$TARGET" >/dev/null

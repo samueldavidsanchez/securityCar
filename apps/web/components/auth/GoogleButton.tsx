@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { readNextParam } from '@/lib/next-param'
 import { createClient } from '@/lib/supabase/client'
 
 export function GoogleButton() {
@@ -9,9 +10,11 @@ export function GoogleButton() {
   async function signIn() {
     setLoading(true)
     const supabase = createClient()
+    // El destino viaja hasta /auth/callback, que ya lo lee de `next`.
+    const next = encodeURIComponent(readNextParam())
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: `${window.location.origin}/auth/callback?next=${next}` },
     })
   }
 
