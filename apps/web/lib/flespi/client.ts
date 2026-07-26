@@ -88,10 +88,14 @@ export async function getTrips(
     return []
   }
 
-  // Filtro por solapamiento temporal con la ventana pedida, más reciente
-  // primero. El interval-selector `all` recorre todos los intervalos del calc
-  // para el dispositivo; `data` los acota.
-  const data = encodeURIComponent(JSON.stringify({ from, to, reverse: true }))
+  // Acota por ventana temporal, más reciente primero. OJO: el endpoint de
+  // intervals NO acepta {from,to} (eso es de /messages) — devuelve 400
+  // "property is not allowed". Se filtra con una expresión `filter` sobre el
+  // campo `begin` del intervalo. El selector `all` recorre todos los intervalos
+  // del calc para el dispositivo; `filter` los acota.
+  const data = encodeURIComponent(
+    JSON.stringify({ filter: `begin>=${from},begin<=${to}`, reverse: true })
+  )
   return requestResult(
     `/gw/calcs/${calcId}/devices/${deviceId}/intervals/all?data=${data}`
   )
