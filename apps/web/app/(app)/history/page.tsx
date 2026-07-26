@@ -1,10 +1,12 @@
 'use client'
 
-import type { TripSummary, VehicleEvent } from '@securitycar/shared'
+import type { GpsPosition, TripSummary, VehicleEvent } from '@securitycar/shared'
 import { EVENT_LABEL, formatDistance, formatDuration } from '@securitycar/shared'
+import { useState } from 'react'
 import useSWR from 'swr'
 import { useVehicleContext } from '@/components/VehicleProvider'
 import { EmptyState } from '@/components/vehicle/EmptyState'
+import { TripRouteMap } from '@/components/map/TripRouteMap'
 import { Card } from '@/components/ui/Card'
 import { fetcher } from '@/hooks/fetcher'
 
@@ -18,8 +20,76 @@ function formatDateTime(iso: string): string {
   })
 }
 
+function epoch(iso: string): number {
+  return Math.floor(new Date(iso).getTime() / 1000)
+}
+
+interface TripRowProps {
+  vehicleId: string
+  trip: TripSummary
+  open: boolean
+  onToggle: () => void
+}
+
+function TripRow({ vehicleId, trip, open, onToggle }: TripRowProps) {
+  // Solo pide la ruta cuando la tarjeta está abierta.
+  const { data: route, isLoading } = useSWR<GpsPosition[]>(
+    open ? `/api/vehicles/${vehicleId}/trips/path?from=${epoch(trip.started_at)}&to=${epoch(trip.ended_at)}` : null,
+    fetcher
+  )
+
+  return (
+    <div className="flex flex-col overflow-hidden rounded-2xl border border-[--color-border] bg-[--color-bg-surface]">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="flex items-center justify-between gap-4 p-4 text-left"
+      >
+        <div className="flex flex-col gap-0.5">
+          <span className="text-sm font-medium">{formatDateTime(trip.started_at)}</span>
+          <span className="text-xs text-[--color-text-muted]">→ {formatDateTime(trip.ended_at)}</span>
+        </div>
+        <div className="flex items-center gap-4 text-right">
+          <div className="flex flex-col">
+            <span className="text-sm font-semibold text-[--color-accent]">
+              {formatDistance(trip.distance_km)}
+            </span>
+            <span className="text-xs text-[--color-text-muted]">distancia</span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-sm font-semibold">{formatDuration(trip.duration_seconds)}</span>
+            <span className="text-xs text-[--color-text-muted]">duración</span>
+          </div>
+          <span
+            className={`text-[--color-text-muted] transition-transform ${open ? 'rotate-180' : ''}`}
+            aria-hidden
+          >
+            ▾
+          </span>
+        </div>
+      </button>
+
+      {open && (
+        <div className="border-t border-[--color-border] p-3">
+          {isLoading && (
+            <p className="py-8 text-center text-sm text-[--color-text-muted]">Cargando ruta…</p>
+          )}
+          {!isLoading && (!route || route.length === 0) && (
+            <p className="py-8 text-center text-sm text-[--color-text-muted]">
+              Sin puntos GPS para este viaje.
+            </p>
+          )}
+          {!isLoading && route && route.length > 0 && <TripRouteMap route={route} />}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function HistoryPage() {
   const { selected } = useVehicleContext()
+  const [openId, setOpenId] = useState<string | null>(null)
   const { data: trips, isLoading } = useSWR<TripSummary[]>(
     selected ? `/api/vehicles/${selected.id}/trips` : null,
     fetcher
@@ -44,9 +114,7 @@ export default function HistoryPage() {
           {events.slice(0, 10).map(ev => (
             <Card key={ev.id} className="flex items-center justify-between py-2.5">
               <span className="text-sm font-medium">{EVENT_LABEL[ev.event_type]}</span>
-              <span className="text-xs text-[--color-text-muted]">
-                {formatDateTime(ev.occurred_at)}
-              </span>
+              <span className="text-xs text-[--color-text-muted]">{formatDateTime(ev.occurred_at)}</span>
             </Card>
           ))}
         </div>
@@ -62,26 +130,13 @@ export default function HistoryPage() {
 
       <div className="flex flex-col gap-2">
         {trips?.map(trip => (
-          <Card key={trip.id} className="flex items-center justify-between">
-            <div className="flex flex-col gap-0.5">
-              <span className="text-sm font-medium">{formatDateTime(trip.started_at)}</span>
-              <span className="text-xs text-[--color-text-muted]">
-                → {formatDateTime(trip.ended_at)}
-              </span>
-            </div>
-            <div className="flex gap-4 text-right">
-              <div className="flex flex-col">
-                <span className="text-sm font-semibold text-[--color-accent]">
-                  {formatDistance(trip.distance_km)}
-                </span>
-                <span className="text-xs text-[--color-text-muted]">distancia</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-sm font-semibold">{formatDuration(trip.duration_seconds)}</span>
-                <span className="text-xs text-[--color-text-muted]">duración</span>
-              </div>
-            </div>
-          </Card>
+          <TripRow
+            key={trip.id}
+            vehicleId={selected.id}
+            trip={trip}
+            open={openId === trip.id}
+            onToggle={() => setOpenId(prev => (prev === trip.id ? null : trip.id))}
+          />
         ))}
       </div>
     </div>

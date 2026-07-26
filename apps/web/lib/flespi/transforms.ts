@@ -69,6 +69,21 @@ export function toPosition(raw: Raw): GpsPosition | null {
   }
 }
 
+/**
+ * Convierte los mensajes crudos de un viaje en una polilínea de puntos
+ * válidos, en orden cronológico. Descarta mensajes sin posición o con
+ * `position.valid === false` (evita saltos a (0,0) o fixes malos).
+ */
+export function toRoute(raws: Raw[]): GpsPosition[] {
+  const points: GpsPosition[] = []
+  for (const raw of raws) {
+    if (bool(raw, 'position.valid') === false) continue
+    const point = toPosition(raw)
+    if (point) points.push(point)
+  }
+  return points
+}
+
 export function toStatus(raw: Raw | null): VehicleStatus {
   if (!raw) {
     return {

@@ -102,6 +102,28 @@ export async function getTrips(
 }
 
 /**
+ * Puntos GPS crudos de un dispositivo dentro de una ventana (unix seconds),
+ * en orden cronológico. Se usa para dibujar la ruta de UN viaje: la ventana
+ * está acotada por el `begin`/`end` del intervalo, así que son cientos de
+ * puntos, no el rango completo. A diferencia de `/intervals`, el endpoint
+ * `/messages` SÍ acepta el filtro {from,to}.
+ */
+export async function getTripRoute(
+  deviceId: number,
+  from: number,
+  to: number
+): Promise<Record<string, unknown>[]> {
+  const data = encodeURIComponent(
+    JSON.stringify({
+      from,
+      to,
+      fields: 'timestamp,position.latitude,position.longitude,position.valid',
+    })
+  )
+  return requestResult(`/gw/devices/${deviceId}/messages?data=${data}`)
+}
+
+/**
  * Send a command to a device via the Flespi gateway.
  */
 export async function sendCommand(
