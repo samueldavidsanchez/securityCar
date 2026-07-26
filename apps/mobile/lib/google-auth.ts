@@ -1,9 +1,3 @@
-import {
-  GoogleSignin,
-  isErrorWithCode,
-  isSuccessResponse,
-  statusCodes,
-} from '@react-native-google-signin/google-signin'
 import { supabase } from './supabase'
 
 /**
@@ -14,7 +8,12 @@ import { supabase } from './supabase'
  * `signInWithIdToken`. No hay navegador, ni redirect URI, ni deep link, que es
  * donde se concentran los fallos del flujo OAuth en móvil.
  *
- * Requiere un development build — este módulo nativo no existe en Expo Go.
+ * IMPORTANTE — carga perezosa: `@react-native-google-signin/google-signin` es
+ * un módulo NATIVO que Expo Go no incluye. Se importa con `import()` dinámico
+ * SOLO dentro de las funciones que lo usan, nunca en el nivel superior. Así, si
+ * el proyecto no tiene client IDs (el botón se oculta) el módulo nunca se
+ * evalúa y la app corre en Expo Go. Con un development build sigue funcionando
+ * igual. No muevas estos imports al top-level: reintroduce el crash en Expo Go.
  */
 
 // El *web* client ID, no el de Android. Es el error de configuración más común:
@@ -26,15 +25,26 @@ const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID
 /** Permite ocultar el botón si el proyecto aún no tiene los client IDs. */
 export const isGoogleAuthConfigured = Boolean(webClientId)
 
-if (webClientId) {
-  GoogleSignin.configure({
-    webClientId,
-    ...(iosClientId ? { iosClientId } : {}),
-    scopes: ['profile', 'email'],
-  })
-}
-
 export class GoogleAuthError extends Error {}
+
+let configured = false
+
+/**
+ * Carga el módulo nativo bajo demanda y lo configura una sola vez. Solo se
+ * llama desde acciones del usuario, nunca al importar este archivo.
+ */
+async function loadGoogleSignin() {
+  const mod = await import('@react-native-google-signin/google-signin')
+  if (webClientId && !configured) {
+    mod.GoogleSignin.configure({
+      webClientId,
+      ...(iosClientId ? { iosClientId } : {}),
+      scopes: ['profile', 'email'],
+    })
+    configured = true
+  }
+  return mod
+}
 
 /**
  * Devuelve `false` si el usuario canceló (no es un error que deba mostrarse),
@@ -44,6 +54,9 @@ export async function signInWithGoogle(): Promise<boolean> {
   if (!webClientId) {
     throw new GoogleAuthError('Google Sign-In no está configurado en esta app.')
   }
+
+  const { GoogleSignin, isErrorWithCode, isSuccessResponse, statusCodes } =
+    await loadGoogleSignin()
 
   try {
     await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true })
@@ -89,6 +102,7 @@ export async function signInWithGoogle(): Promise<boolean> {
 export async function signOutGoogle(): Promise<void> {
   if (!webClientId) return
   try {
+    const { GoogleSignin } = await loadGoogleSignin()
     await GoogleSignin.signOut()
   } catch {
     // Si no había sesión de Google, no es un fallo relevante.
