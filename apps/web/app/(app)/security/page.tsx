@@ -1,6 +1,7 @@
 'use client'
 
 import { hasRole } from '@securitycar/shared'
+import { Lock, Navigation, RefreshCw, TriangleAlert, Unlock } from 'lucide-react'
 import { useVehicleContext } from '@/components/VehicleProvider'
 import { EmptyState } from '@/components/vehicle/EmptyState'
 import { Card } from '@/components/ui/Card'
@@ -36,7 +37,7 @@ export default function SecurityPage() {
       {canCommand && (
         <Card className="border-[--color-warning]/40 bg-[--color-warning]/5">
           <div className="flex items-center gap-2 text-sm text-[--color-warning]">
-            <span>⚠️</span>
+            <TriangleAlert size={16} strokeWidth={2} className="shrink-0" aria-hidden />
             <span>Estas acciones afectan físicamente al vehículo. Úsalas con cuidado.</span>
           </div>
         </Card>
@@ -48,7 +49,7 @@ export default function SecurityPage() {
             vehicleId={selected.id}
             type="engine_unblock"
             label="Desbloquear motor"
-            icon="🟢"
+            icon={Unlock}
             variant="success"
             confirmText="Se permitirá que el motor arranque nuevamente. ¿Continuar?"
           />
@@ -57,7 +58,7 @@ export default function SecurityPage() {
             vehicleId={selected.id}
             type="engine_block"
             label="Bloquear motor"
-            icon="🔴"
+            icon={Lock}
             variant="danger"
             confirmText="El motor no podrá arrancar hasta que lo desbloquees. ¿Continuar?"
           />
@@ -67,7 +68,7 @@ export default function SecurityPage() {
           vehicleId={selected.id}
           type="request_location"
           label="Solicitar ubicación"
-          icon="📍"
+          icon={Navigation}
           variant="primary"
           confirmText="Se pedirá al dispositivo una actualización de ubicación inmediata."
         />
@@ -76,7 +77,7 @@ export default function SecurityPage() {
           vehicleId={selected.id}
           type="reboot"
           label="Reiniciar dispositivo GPS"
-          icon="🔄"
+          icon={RefreshCw}
           variant="secondary"
           confirmText="El GPS se reiniciará y estará desconectado unos segundos. ¿Continuar?"
         />

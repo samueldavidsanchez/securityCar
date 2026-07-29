@@ -2,12 +2,14 @@
 
 import type { GpsPosition, TripSummary, VehicleEvent } from '@securitycar/shared'
 import { EVENT_LABEL, formatDistance, formatDuration } from '@securitycar/shared'
+import { ChevronDown } from 'lucide-react'
 import { useState } from 'react'
 import useSWR from 'swr'
 import { useVehicleContext } from '@/components/VehicleProvider'
 import { EmptyState } from '@/components/vehicle/EmptyState'
 import { TripRouteMap } from '@/components/map/TripRouteMap'
 import { Card } from '@/components/ui/Card'
+import { Skeleton } from '@/components/ui/Skeleton'
 import { fetcher } from '@/hooks/fetcher'
 
 function formatDateTime(iso: string): string {
@@ -39,7 +41,7 @@ function TripRow({ vehicleId, trip, open, onToggle }: TripRowProps) {
   )
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-2xl border border-[--color-border] bg-[--color-bg-surface]">
+    <div className="flex flex-col overflow-hidden rounded-2xl border border-[--color-border] bg-[--color-bg-surface] transition-all duration-150 hover:border-[--color-text-muted] hover:shadow-md hover:shadow-black/10">
       <button
         type="button"
         onClick={onToggle}
@@ -61,12 +63,11 @@ function TripRow({ vehicleId, trip, open, onToggle }: TripRowProps) {
             <span className="text-sm font-semibold">{formatDuration(trip.duration_seconds)}</span>
             <span className="text-xs text-[--color-text-muted]">duración</span>
           </div>
-          <span
-            className={`text-[--color-text-muted] transition-transform ${open ? 'rotate-180' : ''}`}
+          <ChevronDown
+            size={16}
+            className={`text-[--color-text-muted] transition-transform duration-150 ${open ? 'rotate-180' : ''}`}
             aria-hidden
-          >
-            ▾
-          </span>
+          />
         </div>
       </button>
 
@@ -120,7 +121,13 @@ export default function HistoryPage() {
         </div>
       )}
 
-      {isLoading && <p className="text-sm text-[--color-text-muted]">Cargando viajes…</p>}
+      {isLoading && (
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-[74px] rounded-2xl" />
+          <Skeleton className="h-[74px] rounded-2xl" />
+          <Skeleton className="h-[74px] rounded-2xl" />
+        </div>
+      )}
 
       {!isLoading && (!trips || trips.length === 0) && (
         <Card className="text-center text-sm text-[--color-text-muted]">

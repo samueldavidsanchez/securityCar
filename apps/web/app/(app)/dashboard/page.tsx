@@ -1,9 +1,11 @@
 'use client'
 
 import { formatRelativeTime, formatSpeed, formatVoltage, isOnline } from '@securitycar/shared'
+import { BatteryMedium, Clock, KeyRound, Wrench, Zap } from 'lucide-react'
 import { useVehicleContext } from '@/components/VehicleProvider'
 import { EmptyState } from '@/components/vehicle/EmptyState'
 import { Card, Stat } from '@/components/ui/Card'
+import { Skeleton } from '@/components/ui/Skeleton'
 import { useNow } from '@/hooks/useNow'
 import { useVehicleStatus } from '@/hooks/useVehicles'
 
@@ -12,7 +14,19 @@ export default function DashboardPage() {
   const { status } = useVehicleStatus(selected?.id ?? null)
   const now = useNow()
 
-  if (isLoading) return <div className="p-6 text-sm text-[--color-text-muted]">Cargando…</div>
+  if (isLoading)
+    return (
+      <div className="mx-auto flex max-w-2xl flex-col gap-4 p-4 md:p-6">
+        <Skeleton className="h-7 w-40" />
+        <div className="grid grid-cols-2 gap-3">
+          <Skeleton className="h-20 rounded-2xl" />
+          <Skeleton className="h-20 rounded-2xl" />
+          <Skeleton className="h-20 rounded-2xl" />
+          <Skeleton className="h-20 rounded-2xl" />
+        </div>
+        <Skeleton className="h-20 rounded-2xl" />
+      </div>
+    )
   if (!selected) return <EmptyState />
 
   const online = isOnline(status?.last_seen ?? null, now)
@@ -38,7 +52,7 @@ export default function DashboardPage() {
           <Stat
             label="Estado del motor"
             value={status?.engine_blocked ? 'Bloqueado' : 'Normal'}
-            icon="🔧"
+            icon={Wrench}
             accent={status?.engine_blocked ?? false}
           />
         </Card>
@@ -46,22 +60,22 @@ export default function DashboardPage() {
           <Stat
             label="Ignición"
             value={status?.ignition == null ? '—' : status.ignition ? 'Encendido' : 'Apagado'}
-            icon="🔑"
+            icon={KeyRound}
           />
         </Card>
         <Card>
-          <Stat label="Velocidad" value={formatSpeed(status?.speed ?? null)} icon="⚡" />
+          <Stat label="Velocidad" value={formatSpeed(status?.speed ?? null)} icon={Zap} />
         </Card>
         <Card>
-          <Stat label="Batería GPS" value={formatVoltage(status?.battery_voltage ?? null)} icon="🔋" />
+          <Stat label="Batería GPS" value={formatVoltage(status?.battery_voltage ?? null)} icon={BatteryMedium} />
         </Card>
       </div>
 
       <Card>
         <div className="flex items-center justify-between">
-          <Stat label="Última conexión" value={formatRelativeTime(status?.last_seen ?? null)} icon="🕒" />
+          <Stat label="Última conexión" value={formatRelativeTime(status?.last_seen ?? null)} icon={Clock} />
           {status?.position && (
-            <span className="text-xs text-[--color-text-muted]">
+            <span className="text-xs tabular-nums text-[--color-text-muted]">
               {status.position.lat.toFixed(5)}, {status.position.lng.toFixed(5)}
             </span>
           )}

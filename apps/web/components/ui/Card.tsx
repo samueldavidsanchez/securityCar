@@ -1,3 +1,4 @@
+import type { LucideIcon } from 'lucide-react'
 import type { HTMLAttributes } from 'react'
 
 export function Card({ className = '', children, ...rest }: HTMLAttributes<HTMLDivElement>) {
@@ -14,19 +15,19 @@ export function Card({ className = '', children, ...rest }: HTMLAttributes<HTMLD
 interface StatProps {
   label: string
   value: string
-  icon?: string
+  icon?: LucideIcon
   accent?: boolean
 }
 
-export function Stat({ label, value, icon, accent }: StatProps) {
+export function Stat({ label, value, icon: Icon, accent }: StatProps) {
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-xs text-[--color-text-muted]">
-        {icon && <span className="mr-1">{icon}</span>}
+      <span className="flex items-center gap-1.5 text-xs text-[--color-text-muted]">
+        {Icon && <Icon size={13} strokeWidth={2} aria-hidden />}
         {label}
       </span>
       <span
-        className={`text-lg font-semibold ${accent ? 'text-[--color-accent]' : 'text-[--color-text-primary]'}`}
+        className={`text-lg font-semibold tabular-nums ${accent ? 'text-[--color-accent]' : 'text-[--color-text-primary]'}`}
       >
         {value}
       </span>

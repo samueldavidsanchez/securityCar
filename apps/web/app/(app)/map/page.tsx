@@ -1,6 +1,7 @@
 'use client'
 
 import { formatRelativeTime, formatSpeed, isOnline } from '@securitycar/shared'
+import { LocateFixed } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { useState } from 'react'
 import { useVehicleContext } from '@/components/VehicleProvider'
@@ -33,10 +34,10 @@ export default function MapPage() {
       />
 
       {/* Vehicle info card — top left */}
-      <div className="pointer-events-none absolute left-3 top-3 rounded-2xl border border-[--color-border] bg-[--color-bg-surface]/95 p-3 backdrop-blur">
+      <div className="pointer-events-none absolute left-3 top-3 rounded-2xl border border-[--color-border] bg-[--color-bg-surface]/90 p-3 shadow-lg shadow-black/20 backdrop-blur-md">
         <div className="flex items-center gap-2">
           <span
-            className={`h-2 w-2 rounded-full ${online ? 'bg-[--color-success]' : 'bg-[--color-text-muted]'}`}
+            className={`h-2 w-2 rounded-full ${online ? 'bg-[--color-success] animate-pulse' : 'bg-[--color-text-muted]'}`}
           />
           <span className="text-sm font-semibold">{selected.alias}</span>
         </div>
@@ -49,9 +50,10 @@ export default function MapPage() {
       <button
         onClick={() => setRecenter(n => n + 1)}
         disabled={!status?.position}
-        className="absolute bottom-4 right-4 rounded-full border border-[--color-border] bg-[--color-bg-surface] px-4 py-2.5 text-sm font-medium shadow-lg transition-colors hover:bg-[--color-bg-elevated] disabled:opacity-50"
+        className="absolute bottom-4 right-4 flex items-center gap-2 rounded-full border border-[--color-border] bg-[--color-bg-surface] px-4 py-2.5 text-sm font-medium shadow-lg shadow-black/20 transition-all duration-150 ease-out hover:-translate-y-0.5 hover:bg-[--color-bg-elevated] active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50"
       >
-        🎯 Centrar
+        <LocateFixed size={16} strokeWidth={2} />
+        Centrar
       </button>
     </div>
   )

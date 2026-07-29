@@ -14,7 +14,7 @@ export function Input({ label, id, className = '', ...rest }: Props) {
       )}
       <input
         id={id}
-        className={`rounded-xl border border-[--color-border] bg-[--color-bg-surface] px-3.5 py-2.5 text-sm text-[--color-text-primary] outline-none transition-colors placeholder:text-[--color-text-muted] focus:border-[--color-accent] ${className}`}
+        className={`rounded-xl border border-[--color-border] bg-[--color-bg-surface] px-3.5 py-2.5 text-sm text-[--color-text-primary] outline-none transition-all duration-150 placeholder:text-[--color-text-muted] focus:border-[--color-accent] focus:ring-2 focus:ring-[--color-accent]/25 ${className}`}
         {...rest}
       />
     </div>

@@ -1,6 +1,7 @@
 'use client'
 
 import type { CommandType } from '@securitycar/shared'
+import { Check, TriangleAlert, type LucideIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
 
@@ -8,7 +9,7 @@ interface Props {
   vehicleId: string
   type: CommandType
   label: string
-  icon: string
+  icon: LucideIcon
   variant?: 'primary' | 'danger' | 'success' | 'secondary'
   confirmText: string
 }
@@ -17,7 +18,7 @@ export function CommandButton({
   vehicleId,
   type,
   label,
-  icon,
+  icon: Icon,
   variant = 'secondary',
   confirmText,
 }: Props) {
@@ -46,20 +47,24 @@ export function CommandButton({
   return (
     <div className="flex flex-col gap-2">
       <Button variant={variant} onClick={() => setConfirming(true)} loading={loading}>
-        <span>{icon}</span>
+        <Icon size={16} strokeWidth={2} aria-hidden />
         {label}
       </Button>
 
-      {result === 'ok' && <span className="text-xs text-[--color-success]">Comando enviado ✓</span>}
+      {result === 'ok' && (
+        <span className="flex items-center gap-1 text-xs text-[--color-success]">
+          <Check size={13} strokeWidth={2.5} aria-hidden /> Comando enviado
+        </span>
+      )}
       {result === 'error' && (
         <span className="text-xs text-[--color-danger]">No se pudo enviar el comando</span>
       )}
 
       {confirming && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-sm rounded-2xl border border-[--color-border] bg-[--color-bg-surface] p-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl border border-[--color-border] bg-[--color-bg-surface]/95 p-5 shadow-lg shadow-black/30 backdrop-blur-md">
             <div className="mb-1 flex items-center gap-2 text-[--color-warning]">
-              <span>⚠️</span>
+              <TriangleAlert size={16} strokeWidth={2} aria-hidden />
               <span className="text-sm font-semibold">Confirmar acción</span>
             </div>
             <p className="mb-4 text-sm text-[--color-text-secondary]">{confirmText}</p>

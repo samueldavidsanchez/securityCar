@@ -1,16 +1,17 @@
 'use client'
 
+import { Gauge, History, MapPin, Settings, ShieldCheck } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 const NAV = [
-  { href: '/map', label: 'Mapa', icon: '🗺️' },
-  { href: '/dashboard', label: 'Dashboard', icon: '📊' },
-  { href: '/security', label: 'Seguridad', icon: '🔒' },
-  { href: '/history', label: 'Historial', icon: '📍' },
-  { href: '/settings', label: 'Configuración', icon: '⚙️' },
+  { href: '/map', label: 'Mapa', icon: MapPin },
+  { href: '/dashboard', label: 'Dashboard', icon: Gauge },
+  { href: '/security', label: 'Seguridad', icon: ShieldCheck },
+  { href: '/history', label: 'Historial', icon: History },
+  { href: '/settings', label: 'Configuración', icon: Settings },
 ]
 
 export function NavBar() {
@@ -42,17 +43,18 @@ export function NavBar() {
         <div className="flex flex-1 flex-col gap-1">
           {NAV.map(item => {
             const active = pathname.startsWith(item.href)
+            const Icon = item.icon
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all duration-150 ${
                   active
-                    ? 'bg-[--color-bg-elevated] text-[--color-text-primary]'
-                    : 'text-[--color-text-secondary] hover:bg-[--color-bg-elevated]'
+                    ? 'bg-[--color-accent]/10 text-[--color-accent]'
+                    : 'text-[--color-text-secondary] hover:translate-x-0.5 hover:bg-[--color-bg-elevated]'
                 }`}
               >
-                <span>{item.icon}</span>
+                <Icon size={18} strokeWidth={2} />
                 {item.label}
               </Link>
             )
@@ -60,7 +62,7 @@ export function NavBar() {
         </div>
         <button
           onClick={signOut}
-          className="rounded-xl px-3 py-2.5 text-left text-sm text-[--color-text-muted] transition-colors hover:bg-[--color-bg-elevated]"
+          className="rounded-xl px-3 py-2.5 text-left text-sm text-[--color-text-muted] transition-all duration-150 hover:translate-x-0.5 hover:bg-[--color-bg-elevated]"
         >
           Cerrar sesión
         </button>
@@ -70,15 +72,16 @@ export function NavBar() {
       <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-[--color-border] bg-[--color-bg-surface] md:hidden">
         {NAV.map(item => {
           const active = pathname.startsWith(item.href)
+          const Icon = item.icon
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] ${
+              className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] transition-colors duration-150 ${
                 active ? 'text-[--color-accent]' : 'text-[--color-text-muted]'
               }`}
             >
-              <span className="text-lg">{item.icon}</span>
+              <Icon size={20} strokeWidth={2} />
               {item.label}
             </Link>
           )
