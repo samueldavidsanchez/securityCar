@@ -39,12 +39,13 @@ securitycar/
 # Install all dependencies (run from root)
 npm install
 
-# From repo root — Turborepo fans these out to every workspace that defines them
+# From repo root — Turborepo fans these out to every workspace that DEFINES the task.
+# Not every workspace defines every task, so these only run where the script exists:
 npm run dev          # turbo run dev (persistent, uncached)
-npm run build        # turbo run build
-npm run lint         # turbo run lint
-npm run typecheck    # turbo run typecheck
-npm run test         # turbo run test
+npm run build        # turbo run build (web only)
+npm run lint         # turbo run lint (web only)
+npm run typecheck    # turbo run typecheck — covers mobile + shared; web typechecks via `next build`
+npm run test         # turbo run test — NO-OP: no workspace defines `test` and there are no tests yet
 npm run format       # prettier --write across the whole repo
 
 # Web (Next.js) — from apps/web
@@ -60,7 +61,15 @@ npx expo export --platform android          # verify the bundle resolves & compi
 
 # Shared package — from packages/shared
 npx tsc --noEmit        # typecheck
+
+# Provision hardware (mints a single-use claim_code the client redeems via POST /api/vehicles)
+node scripts/provision-device.mjs --imei <IMEI> [--iccid <ICCID>]
+node scripts/provision-device.mjs --imei <IMEI> --flespi-id <ID>   # skip the Flespi lookup
 ```
+
+**No automated test suite exists yet.** Verification is manual — see the end-to-end
+QA checklist in `docs/qa-mvp.md` (Spanish). Deployment (Vercel root dir, env push via
+`scripts/vercel-push-env.sh`, EAS mobile builds, Google OAuth setup) is documented in `DEPLOY.md`.
 
 ## Next.js 16 conventions (IMPORTANT — differs from older Next.js)
 
