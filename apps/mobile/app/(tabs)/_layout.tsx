@@ -1,12 +1,9 @@
 import { Redirect, Tabs } from 'expo-router'
-import { Text, View, type ColorValue } from 'react-native'
+import { Gauge, History, MapPin, Settings, ShieldCheck } from 'lucide-react-native'
+import { View, type ColorValue } from 'react-native'
 import { VehicleProvider } from '@/context/VehicleContext'
 import { useAuth } from '@/hooks/useAuth'
 import { colors } from '@/theme/colors'
-
-function TabIcon({ icon, color }: { icon: string; color: ColorValue }) {
-  return <Text style={{ fontSize: 20, color }}>{icon}</Text>
-}
 
 export default function TabsLayout() {
   const { session, loading } = useAuth()
@@ -28,23 +25,38 @@ export default function TabsLayout() {
       >
         <Tabs.Screen
           name="index"
-          options={{ title: 'Mapa', tabBarIcon: ({ color }) => <TabIcon icon="🗺️" color={color} /> }}
+          options={{
+            title: 'Mapa',
+            tabBarIcon: ({ color }: { color: ColorValue }) => <MapPin size={20} color={color} />,
+          }}
         />
         <Tabs.Screen
           name="dashboard"
-          options={{ title: 'Estado', tabBarIcon: ({ color }) => <TabIcon icon="📊" color={color} /> }}
+          options={{
+            title: 'Estado',
+            tabBarIcon: ({ color }: { color: ColorValue }) => <Gauge size={20} color={color} />,
+          }}
         />
         <Tabs.Screen
           name="security"
-          options={{ title: 'Seguridad', tabBarIcon: ({ color }) => <TabIcon icon="🔒" color={color} /> }}
+          options={{
+            title: 'Seguridad',
+            tabBarIcon: ({ color }: { color: ColorValue }) => <ShieldCheck size={20} color={color} />,
+          }}
         />
         <Tabs.Screen
           name="history"
-          options={{ title: 'Historial', tabBarIcon: ({ color }) => <TabIcon icon="📍" color={color} /> }}
+          options={{
+            title: 'Historial',
+            tabBarIcon: ({ color }: { color: ColorValue }) => <History size={20} color={color} />,
+          }}
         />
         <Tabs.Screen
           name="settings"
-          options={{ title: 'Ajustes', tabBarIcon: ({ color }) => <TabIcon icon="⚙️" color={color} /> }}
+          options={{
+            title: 'Ajustes',
+            tabBarIcon: ({ color }: { color: ColorValue }) => <Settings size={20} color={color} />,
+          }}
         />
       </Tabs>
     </VehicleProvider>

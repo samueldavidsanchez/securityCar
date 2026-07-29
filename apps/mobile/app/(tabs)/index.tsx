@@ -1,6 +1,7 @@
 import { formatRelativeTime, formatSpeed, isOnline } from '@securitycar/shared'
+import { LocateFixed } from 'lucide-react-native'
 import { useRef } from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import MapView, { Marker, PROVIDER_DEFAULT, type Region } from 'react-native-maps'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { EmptyState } from '@/components/EmptyState'
@@ -62,8 +63,12 @@ export default function MapScreen() {
         </View>
       </SafeAreaView>
 
-      <Pressable style={styles.recenter} onPress={recenter}>
-        <Text style={styles.recenterText}>🎯 Centrar</Text>
+      <Pressable
+        style={({ pressed }) => [styles.recenter, { transform: [{ scale: pressed ? 0.96 : 1 }] }]}
+        onPress={recenter}
+      >
+        <LocateFixed size={16} color={colors.textPrimary} />
+        <Text style={styles.recenterText}>Centrar</Text>
       </Pressable>
     </View>
   )
@@ -79,6 +84,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     padding: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 10,
+      },
+      android: { elevation: 5 },
+      default: {},
+    }),
   },
   cardRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   dot: { width: 8, height: 8, borderRadius: 4 },
@@ -88,12 +103,25 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 24,
     right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     backgroundColor: colors.bgSurface,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: colors.border,
     paddingHorizontal: 16,
     paddingVertical: 11,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 10,
+      },
+      android: { elevation: 5 },
+      default: {},
+    }),
   },
   recenterText: { color: colors.textPrimary, fontWeight: '600' },
 })

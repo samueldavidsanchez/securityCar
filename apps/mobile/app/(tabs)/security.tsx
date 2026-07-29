@@ -1,4 +1,5 @@
 import { hasRole, type CommandType } from '@securitycar/shared'
+import { Lock, Navigation, RefreshCw, TriangleAlert, Unlock } from 'lucide-react-native'
 import { useState } from 'react'
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -63,9 +64,12 @@ export default function Security() {
 
         {canCommand && (
           <Card style={styles.warning}>
-            <Text style={styles.warningText}>
-              ⚠️ Estas acciones afectan físicamente al vehículo. Úsalas con cuidado.
-            </Text>
+            <View style={styles.warningRow}>
+              <TriangleAlert size={16} color={colors.warning} />
+              <Text style={styles.warningText}>
+                Estas acciones afectan físicamente al vehículo. Úsalas con cuidado.
+              </Text>
+            </View>
           </Card>
         )}
 
@@ -74,7 +78,8 @@ export default function Security() {
           <View style={{ gap: 12 }}>
             {status?.engine_blocked ? (
               <Button
-                label="🟢 Desbloquear motor"
+                label="Desbloquear motor"
+                icon={Unlock}
                 variant="success"
                 loading={pending === 'engine_unblock'}
                 onPress={() =>
@@ -83,7 +88,8 @@ export default function Security() {
               />
             ) : (
               <Button
-                label="🔴 Bloquear motor"
+                label="Bloquear motor"
+                icon={Lock}
                 variant="danger"
                 loading={pending === 'engine_block'}
                 onPress={() =>
@@ -92,7 +98,8 @@ export default function Security() {
               />
             )}
             <Button
-              label="📍 Solicitar ubicación"
+              label="Solicitar ubicación"
+              icon={Navigation}
               variant="primary"
               loading={pending === 'request_location'}
               onPress={() =>
@@ -100,7 +107,8 @@ export default function Security() {
               }
             />
             <Button
-              label="🔄 Reiniciar GPS"
+              label="Reiniciar GPS"
+              icon={RefreshCw}
               variant="secondary"
               loading={pending === 'reboot'}
               onPress={() =>
@@ -121,6 +129,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 20, fontWeight: '700', color: colors.textPrimary },
   subtitle: { color: colors.textMuted, marginTop: -6 },
   warning: { backgroundColor: colors.warning + '14', borderColor: colors.warning + '55' },
-  warningText: { color: colors.warning, fontSize: 13 },
+  warningRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  warningText: { flex: 1, color: colors.warning, fontSize: 13 },
   readOnly: { color: colors.textMuted, fontSize: 13 },
 })

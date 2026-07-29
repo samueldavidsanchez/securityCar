@@ -1,5 +1,8 @@
+import type { LucideIcon } from 'lucide-react-native'
+import { useState } from 'react'
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -31,12 +34,14 @@ export function Button({
   variant = 'primary',
   loading,
   disabled,
+  icon: Icon,
 }: {
   label: string
   onPress: () => void
   variant?: Variant
   loading?: boolean
   disabled?: boolean
+  icon?: LucideIcon
 }) {
   return (
     <Pressable
@@ -44,13 +49,21 @@ export function Button({
       disabled={disabled || loading}
       style={({ pressed }) => [
         styles.button,
-        { backgroundColor: bg[variant], opacity: disabled || loading ? 0.5 : pressed ? 0.85 : 1 },
+        {
+          backgroundColor: bg[variant],
+          opacity: disabled || loading ? 0.5 : 1,
+          transform: [{ scale: pressed ? 0.97 : 1 }],
+        },
+        !disabled && !loading && styles.buttonElevation,
       ]}
     >
       {loading ? (
         <ActivityIndicator color={fg[variant]} />
       ) : (
-        <Text style={[styles.buttonText, { color: fg[variant] }]}>{label}</Text>
+        <>
+          {Icon && <Icon size={17} color={fg[variant]} strokeWidth={2.25} />}
+          <Text style={[styles.buttonText, { color: fg[variant] }]}>{label}</Text>
+        </>
       )}
     </Pressable>
   )
@@ -60,11 +73,30 @@ export function Card({ children, style }: { children: React.ReactNode; style?: o
   return <View style={[styles.card, style]}>{children}</View>
 }
 
-export function Field({ label, ...props }: TextInputProps & { label?: string }) {
+export function Field({
+  label,
+  onFocus,
+  onBlur,
+  style,
+  ...props
+}: TextInputProps & { label?: string }) {
+  const [focused, setFocused] = useState(false)
   return (
     <View style={{ gap: 6 }}>
       {label && <Text style={styles.label}>{label}</Text>}
-      <TextInput placeholderTextColor={colors.textMuted} style={styles.input} {...props} />
+      <TextInput
+        placeholderTextColor={colors.textMuted}
+        style={[styles.input, focused && styles.inputFocused, style]}
+        onFocus={e => {
+          setFocused(true)
+          onFocus?.(e)
+        }}
+        onBlur={e => {
+          setFocused(false)
+          onBlur?.(e)
+        }}
+        {...props}
+      />
     </View>
   )
 }
@@ -80,12 +112,24 @@ export function Stat({ label, value, accent }: { label: string; value: string; a
 
 const styles = StyleSheet.create({
   button: {
+    flexDirection: 'row',
+    gap: 8,
     borderRadius: 14,
     paddingVertical: 13,
     paddingHorizontal: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  buttonElevation: Platform.select({
+    ios: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.2,
+      shadowRadius: 10,
+    },
+    android: { elevation: 4 },
+    default: {},
+  }),
   buttonText: { fontSize: 15, fontWeight: '600' },
   card: {
     backgroundColor: colors.bgSurface,
@@ -104,6 +148,19 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     color: colors.textPrimary,
     fontSize: 15,
+  },
+  inputFocused: {
+    borderColor: colors.accent,
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.accent,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.35,
+        shadowRadius: 6,
+      },
+      android: { elevation: 2 },
+      default: {},
+    }),
   },
   statLabel: { color: colors.textMuted, fontSize: 12 },
   statValue: { color: colors.textPrimary, fontSize: 18, fontWeight: '700' },
