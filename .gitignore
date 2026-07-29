@@ -25,3 +25,5 @@ scripts/.env.vercel
 
 # Brand source — heavy PDF kept local only (needed logos live in apps/web/public/brand/)
 Manual de maraca/*.pdf
+
+.vercel

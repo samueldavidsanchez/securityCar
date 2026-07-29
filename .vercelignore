@@ -1,0 +1,15 @@
+# Secretos — nunca deben viajar al build (las env vars reales viven en Vercel).
+# El CLI de Vercel sube archivos gitignorados (se comprobó: el .env raíz apareció
+# en el source del deployment), así que hay que excluirlos explícitamente aquí.
+.env
+.env.*
+**/.env
+**/.env.*
+
+# Artefactos locales y material pesado irrelevante para el build web
+.claude
+.turbo
+Manual de maraca
+*.docx
+apps/mobile/dist
+apps/mobile/.expo

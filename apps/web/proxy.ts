@@ -79,7 +79,11 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Everything except static assets, images and the Flespi webhook.
-    '/((?!_next/static|_next/image|favicon.ico|api/webhooks).*)',
+    // Everything except static assets (anything with a file extension —
+    // covers /brand/*.png and similar public files, not just _next/*),
+    // images and the Flespi webhook. Without the extension exclusion,
+    // unauthenticated requests for public assets (e.g. the login page's own
+    // logo) get redirected to /login instead of served, breaking the image.
+    '/((?!_next/static|_next/image|favicon.ico|api/webhooks|.*\\..*$).*)',
   ],
 }
