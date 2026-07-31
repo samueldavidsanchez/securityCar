@@ -11,6 +11,7 @@ export function VehiclePills() {
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
+      style={styles.scroll}
       contentContainerStyle={styles.row}
     >
       {vehicles.map(v => {
@@ -34,7 +35,8 @@ export function VehiclePills() {
 }
 
 const styles = StyleSheet.create({
-  row: { gap: 8, paddingHorizontal: 16, paddingVertical: 10 },
+  scroll: { flexGrow: 0, flexShrink: 0 },
+  row: { gap: 8, paddingHorizontal: 16, paddingVertical: 10, alignItems: 'flex-start' },
   pill: {
     paddingHorizontal: 14,
     paddingVertical: 7,

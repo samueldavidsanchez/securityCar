@@ -22,10 +22,11 @@ function fmt(iso: string): string {
 
 export default function History() {
   const { selected } = useVehicleContext()
-  const { data: trips, isLoading } = useSWR<TripSummary[]>(
-    selected ? `/api/vehicles/${selected.id}/trips` : null,
-    fetcher
-  )
+  const {
+    data: trips,
+    isLoading,
+    error: tripsError,
+  } = useSWR<TripSummary[]>(selected ? `/api/vehicles/${selected.id}/trips` : null, fetcher)
   const { data: events } = useSWR<VehicleEvent[]>(
     selected ? `/api/vehicles/${selected.id}/events` : null,
     fetcher
@@ -56,7 +57,12 @@ export default function History() {
         )}
 
         {isLoading && <Text style={styles.muted}>Cargando viajes…</Text>}
-        {!isLoading && (!trips || trips.length === 0) && (
+        {tripsError && (
+          <Card>
+            <Text style={styles.error}>No se pudieron cargar los viajes: {tripsError.message}</Text>
+          </Card>
+        )}
+        {!isLoading && !tripsError && (!trips || trips.length === 0) && (
           <Card>
             <Text style={styles.muted}>No hay viajes en los últimos 7 días.</Text>
           </Card>
@@ -94,6 +100,7 @@ const styles = StyleSheet.create({
   subtitle: { color: colors.textMuted, marginTop: -6, marginBottom: 4 },
   section: { color: colors.textSecondary, fontSize: 13, fontWeight: '600', marginTop: 4 },
   muted: { color: colors.textMuted, fontSize: 13 },
+  error: { color: colors.danger, fontSize: 13 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   metrics: { flexDirection: 'row', gap: 16 },
   tripTime: { color: colors.textPrimary, fontWeight: '600', fontSize: 14 },
