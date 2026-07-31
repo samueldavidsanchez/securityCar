@@ -101,10 +101,23 @@ export function Field({
   )
 }
 
-export function Stat({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+export function Stat({
+  label,
+  value,
+  accent,
+  icon: Icon,
+}: {
+  label: string
+  value: string
+  accent?: boolean
+  icon?: LucideIcon
+}) {
   return (
     <View style={{ gap: 3 }}>
-      <Text style={styles.statLabel}>{label}</Text>
+      <View style={styles.statLabelRow}>
+        {Icon && <Icon size={13} strokeWidth={2} color={colors.textMuted} />}
+        <Text style={styles.statLabel}>{label}</Text>
+      </View>
       <Text style={[styles.statValue, accent && { color: colors.accent }]}>{value}</Text>
     </View>
   )
@@ -162,6 +175,7 @@ const styles = StyleSheet.create({
       default: {},
     }),
   },
+  statLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   statLabel: { color: colors.textMuted, fontSize: 12 },
   statValue: { color: colors.textPrimary, fontSize: 18, fontWeight: '700' },
 })

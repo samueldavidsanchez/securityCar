@@ -1,20 +1,23 @@
-import { formatRelativeTime, formatSpeed, isOnline } from '@securitycar/shared'
+import { isOnline } from '@securitycar/shared'
 import { LocateFixed } from 'lucide-react-native'
 import { useRef } from 'react'
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Platform, Pressable, StyleSheet, View } from 'react-native'
 import MapView, { Marker, PROVIDER_DEFAULT, type Region } from 'react-native-maps'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { VehicleSheet } from '@/components/map/VehicleSheet'
 import { EmptyState } from '@/components/EmptyState'
 import { useVehicleContext } from '@/context/VehicleContext'
 import { useNow } from '@/hooks/useNow'
-import { useVehicleStatus } from '@/hooks/useVehicles'
+import { useVehicleStatus, useVehicleTrips } from '@/hooks/useVehicles'
 import { colors } from '@/theme/colors'
 
 export default function MapScreen() {
   const { selected } = useVehicleContext()
   const { status } = useVehicleStatus(selected?.id ?? null)
+  const { trips } = useVehicleTrips(selected?.id ?? null)
   const now = useNow()
   const mapRef = useRef<MapView>(null)
+  const insets = useSafeAreaInsets()
 
   if (!selected) return <EmptyState />
 
@@ -51,67 +54,43 @@ export default function MapScreen() {
         )}
       </MapView>
 
-      <SafeAreaView style={styles.overlay} pointerEvents="box-none">
-        <View style={styles.card}>
-          <View style={styles.cardRow}>
-            <View style={[styles.dot, { backgroundColor: online ? colors.success : colors.textMuted }]} />
-            <Text style={styles.cardTitle}>{selected.alias}</Text>
-          </View>
-          <Text style={styles.cardSub}>
-            {formatSpeed(status?.speed ?? null)} · {formatRelativeTime(status?.last_seen ?? null)}
-          </Text>
-        </View>
-      </SafeAreaView>
-
       <Pressable
-        style={({ pressed }) => [styles.recenter, { transform: [{ scale: pressed ? 0.96 : 1 }] }]}
+        style={({ pressed }) => [
+          styles.recenter,
+          { top: insets.top + 16, transform: [{ scale: pressed ? 0.96 : 1 }] },
+        ]}
         onPress={recenter}
       >
-        <LocateFixed size={16} color={colors.textPrimary} />
-        <Text style={styles.recenterText}>Centrar</Text>
+        <LocateFixed size={18} color={colors.textPrimary} />
       </Pressable>
+
+      <VehicleSheet
+        alias={selected.alias}
+        online={online}
+        speed={status?.speed ?? null}
+        lastSeen={status?.last_seen ?? null}
+        batteryVoltage={status?.battery_voltage ?? null}
+        ignition={status?.ignition ?? null}
+        trips={trips}
+      />
     </View>
   )
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bgBase },
-  overlay: { position: 'absolute', top: 0, left: 0, right: 0, padding: 12 },
-  card: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.bgSurface + 'F2',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 12,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.25,
-        shadowRadius: 10,
-      },
-      android: { elevation: 5 },
-      default: {},
-    }),
-  },
-  cardRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  dot: { width: 8, height: 8, borderRadius: 4 },
-  cardTitle: { color: colors.textPrimary, fontWeight: '700', fontSize: 15 },
-  cardSub: { color: colors.textMuted, fontSize: 12, marginTop: 3 },
   recenter: {
     position: 'absolute',
-    bottom: 24,
+    top: 16,
     right: 16,
-    flexDirection: 'row',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
-    gap: 6,
+    justifyContent: 'center',
     backgroundColor: colors.bgSurface,
-    borderRadius: 999,
     borderWidth: 1,
     borderColor: colors.border,
-    paddingHorizontal: 16,
-    paddingVertical: 11,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -123,5 +102,4 @@ const styles = StyleSheet.create({
       default: {},
     }),
   },
-  recenterText: { color: colors.textPrimary, fontWeight: '600' },
 })
