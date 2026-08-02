@@ -1,8 +1,8 @@
 import { isOnline } from '@securitycar/shared'
 import { LocateFixed } from 'lucide-react-native'
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { Platform, Pressable, StyleSheet, View } from 'react-native'
-import MapView, { Marker, PROVIDER_DEFAULT, type Region } from 'react-native-maps'
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { VehicleSheet } from '@/components/map/VehicleSheet'
 import { EmptyState } from '@/components/EmptyState'
@@ -17,15 +17,30 @@ export default function MapScreen() {
   const { trips } = useVehicleTrips(selected?.id ?? null)
   const now = useNow()
   const mapRef = useRef<MapView>(null)
+  const hasCenteredRef = useRef(false)
   const insets = useSafeAreaInsets()
+
+  const pos = status?.position
+
+  // `region` (controlled) y `initialRegion` (no controlado) no se llevan bien
+  // en react-native-maps -- mezclarlos deja la cámara pegada en initialRegion
+  // en Android aunque el marcador sí se dibuje en la posición real, así que
+  // el mapa "carga" pero el pin queda fuera de cámara. En vez de eso: solo
+  // initialRegion para el arranque, y animamos a la posición real la primera
+  // vez que llega (y cada vez que se toca "centrar").
+  useEffect(() => {
+    if (pos && !hasCenteredRef.current) {
+      hasCenteredRef.current = true
+      mapRef.current?.animateToRegion(
+        { latitude: pos.lat, longitude: pos.lng, latitudeDelta: 0.01, longitudeDelta: 0.01 },
+        500
+      )
+    }
+  }, [pos])
 
   if (!selected) return <EmptyState />
 
-  const pos = status?.position
   const online = isOnline(status?.last_seen ?? null, now)
-  const region: Region | undefined = pos
-    ? { latitude: pos.lat, longitude: pos.lng, latitudeDelta: 0.01, longitudeDelta: 0.01 }
-    : undefined
 
   function recenter() {
     if (pos) {
@@ -40,13 +55,13 @@ export default function MapScreen() {
     <View style={styles.container}>
       <MapView
         ref={mapRef}
-        provider={PROVIDER_DEFAULT}
+        provider={PROVIDER_GOOGLE}
         style={StyleSheet.absoluteFill}
-        region={region}
         initialRegion={{ latitude: 19.4326, longitude: -99.1332, latitudeDelta: 0.5, longitudeDelta: 0.5 }}
       >
         {pos && (
           <Marker
+            key={selected.id}
             coordinate={{ latitude: pos.lat, longitude: pos.lng }}
             title={selected.alias}
             pinColor={colors.accent}
