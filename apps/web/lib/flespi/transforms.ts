@@ -16,6 +16,15 @@ function num(raw: Raw, ...keys: string[]): number | null {
   return null
 }
 
+// Algunos trackers reportan velocidades corruptas (p. ej. 17990 "km/h", visto
+// en producción); fuera de este rango el valor se trata como "sin dato".
+const MAX_PLAUSIBLE_SPEED_KMH = 250
+
+function speedKmh(raw: Raw): number | null {
+  const v = num(raw, 'position.speed', 'vehicle.speed')
+  return v !== null && v >= 0 && v <= MAX_PLAUSIBLE_SPEED_KMH ? v : null
+}
+
 function bool(raw: Raw, ...keys: string[]): boolean | null {
   for (const k of keys) {
     const v = raw[k]
@@ -97,7 +106,7 @@ export function toStatus(raw: Raw | null): VehicleStatus {
   }
   return {
     ignition: bool(raw, 'engine.ignition.status'),
-    speed: num(raw, 'position.speed', 'vehicle.speed'),
+    speed: speedKmh(raw),
     battery_voltage: num(
       raw,
       'external.powersource.voltage',
@@ -125,7 +134,7 @@ export function toTelemetry(raw: Raw | null): TelemetryData {
     }
   }
   return {
-    speed: num(raw, 'position.speed', 'vehicle.speed'),
+    speed: speedKmh(raw),
     odometer: num(raw, 'vehicle.mileage'),
     engine_hours: num(raw, 'engine.hours'),
     battery_voltage: num(
