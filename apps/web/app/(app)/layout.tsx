@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { VehicleProvider } from '@/components/VehicleProvider'
+import { AppHeader } from '@/components/layout/AppHeader'
 import { NavBar } from '@/components/layout/NavBar'
-import { VehicleSwitcher } from '@/components/layout/VehicleSwitcher'
 import { createClient } from '@/lib/supabase/server'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -18,10 +18,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <div className="flex h-full">
         <NavBar />
         <div className="flex flex-1 flex-col overflow-hidden pb-16 md:pb-0">
-          <header className="flex items-center justify-between border-b border-[--color-border] bg-[--color-bg-surface] px-4 py-3">
-            <VehicleSwitcher />
-            <span className="text-xs text-[--color-text-muted]">{user.email}</span>
-          </header>
+          <AppHeader email={user.email} />
           <main className="flex-1 overflow-auto">{children}</main>
         </div>
       </div>
