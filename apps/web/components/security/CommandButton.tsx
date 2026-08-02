@@ -59,7 +59,7 @@ export function CommandButton({
       {useSlide ? (
         <>
           <SlideToConfirm label={label} icon={Icon} variant={variant} loading={loading} onConfirm={send} />
-          <p className="text-xs text-[--color-text-muted]">{confirmText}</p>
+          <p className="text-xs text-(--color-text-muted)">{confirmText}</p>
         </>
       ) : (
         <Button variant={variant} onClick={() => setConfirming(true)} loading={loading}>
@@ -69,22 +69,22 @@ export function CommandButton({
       )}
 
       {result === 'ok' && (
-        <span className="flex items-center gap-1 text-xs text-[--color-success]">
+        <span className="flex items-center gap-1 text-xs text-(--color-success)">
           <Check size={13} strokeWidth={2.5} aria-hidden /> Comando enviado
         </span>
       )}
       {result === 'error' && (
-        <span className="text-xs text-[--color-danger]">No se pudo enviar el comando</span>
+        <span className="text-xs text-(--color-danger)">No se pudo enviar el comando</span>
       )}
 
       {confirming && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-2xl border border-[--color-border] bg-[--color-bg-surface]/95 p-5 shadow-lg shadow-black/30 backdrop-blur-md">
-            <div className="mb-1 flex items-center gap-2 text-[--color-warning]">
+          <div className="shadow-floating w-full max-w-sm rounded-2xl border border-(--color-border) bg-(--color-bg-surface)/95 p-5 backdrop-blur-md">
+            <div className="mb-1 flex items-center gap-2 text-(--color-warning)">
               <TriangleAlert size={16} strokeWidth={2} aria-hidden />
               <span className="text-sm font-semibold">Confirmar acción</span>
             </div>
-            <p className="mb-4 text-sm text-[--color-text-secondary]">{confirmText}</p>
+            <p className="mb-4 text-sm text-(--color-text-secondary)">{confirmText}</p>
             <div className="flex gap-2">
               <Button variant="secondary" className="flex-1" onClick={() => setConfirming(false)}>
                 Cancelar

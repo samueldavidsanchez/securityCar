@@ -73,20 +73,20 @@ export default function RegisterPage() {
           minLength={6}
           required
         />
-        {error && <p className="text-sm text-[--color-danger]">{error}</p>}
-        {notice && <p className="text-sm text-[--color-success]">{notice}</p>}
+        {error && <p className="text-sm text-(--color-danger)">{error}</p>}
+        {notice && <p className="text-sm text-(--color-success)">{notice}</p>}
         <Button type="submit" loading={loading}>
           Registrarme
         </Button>
         <div className="relative flex items-center gap-3 py-1">
-          <div className="h-px flex-1 bg-[--color-border]" />
-          <span className="text-xs text-[--color-text-muted]">o</span>
-          <div className="h-px flex-1 bg-[--color-border]" />
+          <div className="h-px flex-1 bg-(--color-border)" />
+          <span className="text-xs text-(--color-text-muted)">o</span>
+          <div className="h-px flex-1 bg-(--color-border)" />
         </div>
         <GoogleButton />
-        <p className="text-center text-sm text-[--color-text-muted]">
+        <p className="text-center text-sm text-(--color-text-muted)">
           ¿Ya tienes cuenta?{' '}
-          <Link href="/login" className="text-[--color-accent] hover:underline">
+          <Link href="/login" className="text-(--color-accent) hover:underline">
             Inicia sesión
           </Link>
         </p>

@@ -4,14 +4,14 @@ type Variant = 'primary' | 'secondary' | 'danger' | 'success' | 'ghost'
 
 const variants: Record<Variant, string> = {
   primary:
-    'bg-[--color-accent] hover:bg-[--color-accent-hover] text-[--color-on-accent] font-semibold hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/20',
+    'bg-(--color-accent) hover:bg-(--color-accent-hover) text-(--color-on-accent) font-semibold hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/20',
   secondary:
-    'bg-[--color-bg-elevated] hover:bg-[--color-border] text-[--color-text-primary] hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/20',
+    'bg-(--color-bg-elevated) hover:bg-(--color-border) text-(--color-text-primary) hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/20',
   danger:
-    'bg-[--color-danger] hover:brightness-110 text-white hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/20',
+    'bg-(--color-danger) hover:brightness-110 text-white hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/20',
   success:
-    'bg-[--color-success] hover:brightness-110 text-white hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/20',
-  ghost: 'bg-transparent hover:bg-[--color-bg-elevated] text-[--color-text-secondary]',
+    'bg-(--color-success) hover:brightness-110 text-white hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/20',
+  ghost: 'bg-transparent hover:bg-(--color-bg-elevated) text-(--color-text-secondary)',
 }
 
 interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {

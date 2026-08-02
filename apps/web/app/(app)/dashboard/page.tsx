@@ -75,16 +75,16 @@ export default function DashboardPage() {
         <span
           className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
             online
-              ? 'bg-[--color-success]/15 text-[--color-success]'
-              : 'bg-[--color-text-muted]/15 text-[--color-text-muted]'
+              ? 'bg-(--color-success)/15 text-(--color-success)'
+              : 'bg-(--color-text-muted)/15 text-(--color-text-muted)'
           }`}
         >
-          <span className={`h-1.5 w-1.5 rounded-full ${online ? 'bg-[--color-success]' : 'bg-[--color-text-muted]'}`} />
+          <span className={`h-1.5 w-1.5 rounded-full ${online ? 'bg-(--color-success)' : 'bg-(--color-text-muted)'}`} />
           {online ? 'En línea' : 'Desconectado'}
         </span>
       </div>
 
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-[--color-text-muted]">Ahora</h2>
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-(--color-text-muted)">Ahora</h2>
       <div className="grid grid-cols-2 gap-3">
         <Card>
           <Stat
@@ -110,18 +110,18 @@ export default function DashboardPage() {
           Estado del motor
         </span>
         <span
-          className={`text-sm font-semibold ${telemetry?.engine_blocked ? 'text-[--color-danger]' : 'text-[--color-success]'}`}
+          className={`text-sm font-semibold ${telemetry?.engine_blocked ? 'text-(--color-danger)' : 'text-(--color-success)'}`}
         >
           {telemetry?.engine_blocked ? 'Bloqueado' : 'Normal'}
         </span>
       </Card>
 
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-[--color-text-muted]">Acumulados</h2>
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-(--color-text-muted)">Acumulados</h2>
       <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-2xl border border-[--color-border] bg-[--color-bg-elevated] p-4">
+        <div className="rounded-2xl border border-(--color-border) bg-(--color-bg-elevated) p-4">
           <Stat label="Odómetro" value={formatOdometer(telemetry?.odometer ?? null)} />
         </div>
-        <div className="rounded-2xl border border-[--color-border] bg-[--color-bg-elevated] p-4">
+        <div className="rounded-2xl border border-(--color-border) bg-(--color-bg-elevated) p-4">
           <Stat label="Horas de motor" value={formatEngineHours(telemetry?.engine_hours ?? null)} />
         </div>
       </div>
@@ -131,7 +131,7 @@ export default function DashboardPage() {
         </Card>
       )}
 
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-[--color-text-muted]">
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-(--color-text-muted)">
         Distancia · últimos 7 días
       </h2>
       <Card className="flex flex-col gap-2.5">
@@ -139,7 +139,7 @@ export default function DashboardPage() {
           {buckets.map((b, i) => (
             <div
               key={i}
-              className="min-h-1 flex-1 rounded-t rounded-b-sm bg-[--color-accent]"
+              className="min-h-1 flex-1 rounded-t rounded-b-sm bg-(--color-accent)"
               style={{ height: `${Math.max((b.km / maxKm) * 100, 3)}%`, opacity: i === 6 ? 1 : 0.65 }}
               title={`${b.km.toFixed(1)} km`}
             />
@@ -147,7 +147,7 @@ export default function DashboardPage() {
         </div>
         <div className="flex gap-1.5">
           {buckets.map((b, i) => (
-            <span key={i} className="flex-1 text-center text-[10px] text-[--color-text-muted]">
+            <span key={i} className="flex-1 text-center text-[10px] text-(--color-text-muted)">
               {b.label}
             </span>
           ))}

@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Tipografía oficial del Manual de Marca: Poppins. */
+  --font-sans: var(--font-poppins);
 
   /* vivancar brand — green #9AB055 accent on near-black #1D1D1B */
   --color-bg-base: #141412;
@@ -41,6 +41,21 @@ body {
   border: 3px solid #fff;
   box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-accent) 30%, transparent);
   cursor: pointer;
+}
+
+/* Elevación para superficies flotantes (cards de mapa, dropdowns, modales).
+   `shadow-lg shadow-black/XX` de Tailwind es casi invisible sobre el fondo
+   casi negro de la marca (#141412/#1D1D1B) — un negro sobre casi-negro no
+   da contraste sin importar la opacidad. Esta sombra es grande/difusa para
+   leerse contra cualquier fondo, y suma un highlight superior de 1px para
+   simular el borde "iluminado" típico de superficies flotantes en UIs
+   oscuras. Reemplaza `shadow-lg shadow-black/XX` en toda superficie
+   flotante (ver Design Rules en vivancar-designer.md).*/
+.shadow-floating {
+  box-shadow:
+    0 24px 48px -12px rgba(0, 0, 0, 0.65),
+    0 8px 24px -8px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 /* ── MapLibre — tema oscuro ──────────────────────────────────────────

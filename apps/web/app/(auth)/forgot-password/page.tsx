@@ -27,10 +27,10 @@ export default function ForgotPasswordPage() {
     <Card className="p-6">
       {sent ? (
         <div className="flex flex-col gap-4 text-center">
-          <p className="text-sm text-[--color-success]">
+          <p className="text-sm text-(--color-success)">
             Si el correo existe, recibirás un enlace para restablecer tu contraseña.
           </p>
-          <Link href="/login" className="text-sm text-[--color-accent] hover:underline">
+          <Link href="/login" className="text-sm text-(--color-accent) hover:underline">
             Volver a iniciar sesión
           </Link>
         </div>
@@ -51,7 +51,7 @@ export default function ForgotPasswordPage() {
           </Button>
           <Link
             href="/login"
-            className="text-center text-sm text-[--color-text-muted] hover:text-[--color-text-secondary]"
+            className="text-center text-sm text-(--color-text-muted) hover:text-(--color-text-secondary)"
           >
             Volver
           </Link>

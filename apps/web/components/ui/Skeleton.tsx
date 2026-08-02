@@ -6,7 +6,7 @@ export function Skeleton({ className = '' }: { className?: string }) {
   return (
     <div
       aria-hidden
-      className={`animate-pulse rounded-xl bg-[--color-bg-elevated] ${className}`}
+      className={`animate-pulse rounded-xl bg-(--color-bg-elevated) ${className}`}
     />
   )
 }

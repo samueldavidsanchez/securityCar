@@ -69,7 +69,7 @@ export function SlideToConfirm({ label, icon: Icon, variant, loading, onConfirm 
   return (
     <div
       ref={trackRef}
-      className="relative flex h-[54px] items-center overflow-hidden rounded-full border border-[--color-border] bg-[--color-bg-elevated]"
+      className="relative flex h-[54px] items-center overflow-hidden rounded-full border border-(--color-border) bg-(--color-bg-elevated)"
     >
       <div
         aria-hidden
@@ -80,7 +80,7 @@ export function SlideToConfirm({ label, icon: Icon, variant, loading, onConfirm 
           transition: dragging ? 'none' : 'width 0.25s ease-out',
         }}
       />
-      <span className="pointer-events-none relative z-0 w-full select-none text-center text-sm font-semibold text-[--color-text-secondary]">
+      <span className="pointer-events-none relative z-0 w-full select-none text-center text-sm font-semibold text-(--color-text-secondary)">
         {loading ? 'Enviando…' : `Desliza para ${label.toLowerCase()}`}
       </span>
       <div
@@ -93,7 +93,7 @@ export function SlideToConfirm({ label, icon: Icon, variant, loading, onConfirm 
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
         onKeyDown={onKeyDown}
-        className="absolute z-10 flex cursor-grab touch-none items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-[--color-text-primary] active:cursor-grabbing"
+        className="absolute z-10 flex cursor-grab touch-none items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-(--color-text-primary) active:cursor-grabbing"
         style={{
           left: TRACK_PADDING,
           width: THUMB_SIZE,

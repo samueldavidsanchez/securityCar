@@ -42,7 +42,17 @@ export function VehicleMap({ position, label, recenterSignal }: Props) {
     })
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
     mapRef.current = map
+
+    // MapLibre sizes its canvas from the container's dimensions at
+    // construction time and only re-syncs on a native `window` resize event
+    // — a pure CSS/layout change to the container (sidebar toggle, flex
+    // siblings changing width) doesn't trigger it. A ResizeObserver keeps
+    // the canvas in sync whenever the container itself changes size.
+    const resizeObserver = new ResizeObserver(() => map.resize())
+    resizeObserver.observe(containerRef.current)
+
     return () => {
+      resizeObserver.disconnect()
       map.remove()
       mapRef.current = null
     }

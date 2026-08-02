@@ -54,21 +54,21 @@ export default function LoginPage() {
           onChange={e => setPassword(e.target.value)}
           required
         />
-        {error && <p className="text-sm text-[--color-danger]">{error}</p>}
+        {error && <p className="text-sm text-(--color-danger)">{error}</p>}
         <Button type="submit" loading={loading}>
           Entrar
         </Button>
         <div className="relative flex items-center gap-3 py-1">
-          <div className="h-px flex-1 bg-[--color-border]" />
-          <span className="text-xs text-[--color-text-muted]">o</span>
-          <div className="h-px flex-1 bg-[--color-border]" />
+          <div className="h-px flex-1 bg-(--color-border)" />
+          <span className="text-xs text-(--color-text-muted)">o</span>
+          <div className="h-px flex-1 bg-(--color-border)" />
         </div>
         <GoogleButton />
-        <div className="flex justify-between text-sm text-[--color-text-muted]">
-          <Link href="/forgot-password" className="hover:text-[--color-text-secondary]">
+        <div className="flex justify-between text-sm text-(--color-text-muted)">
+          <Link href="/forgot-password" className="hover:text-(--color-text-secondary)">
             ¿Olvidaste tu contraseña?
           </Link>
-          <Link href="/register" className="text-[--color-accent] hover:underline">
+          <Link href="/register" className="text-(--color-accent) hover:underline">
             Crear cuenta
           </Link>
         </div>

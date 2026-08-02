@@ -53,11 +53,11 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
       <Card className="flex w-full flex-col gap-4 p-6">
         <h1 className="text-lg font-semibold">Invitación a un vehículo</h1>
 
-        {isLoading && <p className="text-sm text-[--color-text-muted]">Comprobando invitación…</p>}
+        {isLoading && <p className="text-sm text-(--color-text-muted)">Comprobando invitación…</p>}
 
         {loadError && (
           <>
-            <p className="text-sm text-[--color-danger]">
+            <p className="text-sm text-(--color-danger)">
               Esta invitación no es válida, ya se usó o caducó.
             </p>
             <Button variant="secondary" onClick={() => router.push('/map')}>
@@ -68,21 +68,21 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
 
         {data && (
           <>
-            <p className="text-sm text-[--color-text-secondary]">
+            <p className="text-sm text-(--color-text-secondary)">
               Te han dado acceso a <strong>{data.vehicle_alias}</strong> como{' '}
               <strong>{ROLE_LABEL[data.role]}</strong>.
             </p>
             {data.role === 'driver' && (
-              <p className="text-xs text-[--color-text-muted]">
+              <p className="text-xs text-(--color-text-muted)">
                 Como conductor podrás ver la ubicación y enviar comandos al vehículo.
               </p>
             )}
             {data.role === 'viewer' && (
-              <p className="text-xs text-[--color-text-muted]">
+              <p className="text-xs text-(--color-text-muted)">
                 Podrás ver la ubicación y el estado, pero no enviar comandos.
               </p>
             )}
-            {error && <p className="text-sm text-[--color-danger]">{error}</p>}
+            {error && <p className="text-sm text-(--color-danger)">{error}</p>}
             <div className="flex gap-2">
               <Button onClick={accept} loading={accepting} className="flex-1">
                 Aceptar

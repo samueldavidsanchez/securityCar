@@ -73,11 +73,11 @@ export default function SettingsPage() {
             onChange={e => setClaimCode(e.target.value.toUpperCase())}
             required
           />
-          <p className="text-xs text-[--color-text-muted]">
+          <p className="text-xs text-(--color-text-muted)">
             Lo encuentras en la tarjeta entregada con tu equipo GPS.
           </p>
-          {error && <p className="text-sm text-[--color-danger]">{error}</p>}
-          {notice && <p className="text-sm text-[--color-text-muted]">{notice}</p>}
+          {error && <p className="text-sm text-(--color-danger)">{error}</p>}
+          {notice && <p className="text-sm text-(--color-text-muted)">{notice}</p>}
           <Button type="submit" loading={loading}>
             Agregar
           </Button>
@@ -87,19 +87,19 @@ export default function SettingsPage() {
       <Card className="flex flex-col gap-2">
         <h2 className="text-sm font-semibold">Mis vehículos</h2>
         {vehicles.length === 0 && (
-          <p className="text-sm text-[--color-text-muted]">Aún no tienes vehículos.</p>
+          <p className="text-sm text-(--color-text-muted)">Aún no tienes vehículos.</p>
         )}
         {vehicles.map(v => {
           const isOwner = v.effective_role === 'owner'
           return (
             <div
               key={v.id}
-              className="flex flex-col gap-3 rounded-xl bg-[--color-bg-elevated] px-3 py-2.5"
+              className="flex flex-col gap-3 rounded-xl bg-(--color-bg-elevated) px-3 py-2.5"
             >
               <div className="flex items-center justify-between gap-2">
                 <div className="flex min-w-0 flex-col">
                   <span className="truncate text-sm font-medium">{v.alias}</span>
-                  <span className="text-xs text-[--color-text-muted]">
+                  <span className="text-xs text-(--color-text-muted)">
                     IMEI {v.device.imei}
                     {!isOwner && ` · ${ROLE_LABEL[v.effective_role]}`}
                   </span>
@@ -108,13 +108,13 @@ export default function SettingsPage() {
                   <div className="flex shrink-0 gap-3">
                     <button
                       onClick={() => setSharingId(sharingId === v.id ? null : v.id)}
-                      className="text-xs text-[--color-accent] hover:underline"
+                      className="text-xs text-(--color-accent) hover:underline"
                     >
                       {sharingId === v.id ? 'Cerrar' : 'Compartir'}
                     </button>
                     <button
                       onClick={() => removeVehicle(v.id)}
-                      className="text-xs text-[--color-danger] hover:underline"
+                      className="text-xs text-(--color-danger) hover:underline"
                     >
                       Eliminar
                     </button>

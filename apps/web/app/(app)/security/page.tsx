@@ -22,12 +22,12 @@ export default function SecurityPage() {
     <div className="mx-auto flex max-w-lg flex-col gap-4 p-4 md:p-6">
       <div>
         <h1 className="text-xl font-semibold">Seguridad</h1>
-        <p className="text-sm text-[--color-text-muted]">{selected.alias}</p>
+        <p className="text-sm text-(--color-text-muted)">{selected.alias}</p>
       </div>
 
       {!canCommand && (
         <Card>
-          <p className="text-sm text-[--color-text-muted]">
+          <p className="text-sm text-(--color-text-muted)">
             Tienes acceso de solo lectura a este vehículo. Pide al propietario que te
             asigne el rol de conductor para poder enviar comandos.
           </p>
@@ -35,8 +35,8 @@ export default function SecurityPage() {
       )}
 
       {canCommand && (
-        <Card className="border-[--color-warning]/40 bg-[--color-warning]/5">
-          <div className="flex items-center gap-2 text-sm text-[--color-warning]">
+        <Card className="border-(--color-warning)/40 bg-(--color-warning)/5">
+          <div className="flex items-center gap-2 text-sm text-(--color-warning)">
             <TriangleAlert size={16} strokeWidth={2} className="shrink-0" aria-hidden />
             <span>Estas acciones afectan físicamente al vehículo. Úsalas con cuidado.</span>
           </div>

@@ -2,6 +2,7 @@ import path from 'node:path'
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
+  reactStrictMode: false,
   transpilePackages: ['@securitycar/shared'],
   // Monorepo root — silences multi-lockfile inference warning.
   turbopack: {
