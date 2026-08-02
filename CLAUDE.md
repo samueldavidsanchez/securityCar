@@ -113,7 +113,7 @@ The web app runs **Next.js 16 with Turbopack**. Breaking changes that affect how
 
 **Flespi token is server-only.** The `FLESPI_TOKEN` env var is used exclusively inside Next.js API Routes (`/api/*`). It must never be passed to the client.
 
-**Repository Pattern.** All database operations go through repository classes (`VehicleRepository`, `CommandRepository`). This allows swapping Supabase for another PostgreSQL provider without touching business logic.
+**Repository Pattern.** All database operations go through repository classes (`VehicleRepository`, `CommandRepository`, `EventRepository`, `SharingRepository`). This allows swapping Supabase for another PostgreSQL provider without touching business logic.
 
 **Shared types via `packages/shared`.** Both `apps/web` and `apps/mobile` import types, Zod schemas, and utility functions from `packages/shared`. Never duplicate types between apps.
 
@@ -138,6 +138,7 @@ Every Route Handler returns this shape.
 /api/vehicles/:id/location            GET — proxies Flespi GPS position
 /api/vehicles/:id/telemetry           GET — proxies Flespi latest message (dashboard field set)
 /api/vehicles/:id/trips               GET — proxies Flespi trip CALCULATOR intervals
+/api/vehicles/:id/trips/path          GET — raw GPS points for ONE trip window (?from=&to=, max 24h)
 /api/vehicles/:id/events              GET — business events from vehicle_events (Supabase)
 /api/vehicles/:id/commands            GET history (Supabase), POST send (Flespi)
 /api/profile                          GET, PUT
@@ -160,7 +161,8 @@ Row Level Security is enabled on all tables. Every query through the Supabase se
 ## Flespi Integration
 
 - Latest telemetry: `GET /gw/devices/{flespi_device_id}/messages` with field filter
-- Trips: `GET /gw/calcs/{FLESPI_TRIPS_CALC_ID}/devices/{id}/intervals/all` — a **trip calculator**, never raw `/messages` over a time range (that returns tens of thousands of raw points, times out, and isn't trips). `getTrips` returns `[]` when `FLESPI_TRIPS_CALC_ID` is unset so History degrades to "no trips" instead of erroring.
+- Trips: `GET /gw/calcs/{FLESPI_TRIPS_CALC_ID}/devices/{id}/intervals/all` — a **trip calculator**, never raw `/messages` over the *full* history range (that returns tens of thousands of raw points, times out, and isn't trips). `getTrips` returns `[]` when `FLESPI_TRIPS_CALC_ID` is unset so History degrades to "no trips" instead of erroring.
+- Trip path: `GET /gw/devices/{id}/messages?data={from,to,fields}` (`getTripRoute`, used by `/api/vehicles/:id/trips/path`) IS the one legitimate raw-`/messages` call — bounded to a single trip's `begin`/`end` window with a hard 24h cap, so it's hundreds of points, not the full history. Don't widen that window or reuse the pattern for anything but drawing one trip's path.
 - Send command: `POST /gw/devices/{flespi_device_id}/commands` — the queued command's `id` is saved to `command_logs.flespi_command_id` so the webhook can correlate the ACK.
 - Incoming events: Flespi → `POST /api/webhooks/flespi` (validate HMAC). The handler does exactly two things via the service client: confirm commands (`command_logs` → `confirmed`) and record typed business events into `vehicle_events`. Raw telemetry with no recognizable event type is ignored — **never persist telemetry**. `vehicle_events` is the deliberate exception: interpreted business facts (disconnect, low battery, ignition, geofence), not GPS data.
 - All Flespi REST responses are validated with `FlespiEnvelopeSchema` (structure only — field names vary by protocol, so `transforms.ts` extracts each field defensively via `num()`/`bool()` candidate-key lookups).

@@ -32,7 +32,7 @@ Canonical source: `apps/web/app/globals.css` (`@theme inline`), mirrored in `app
 
 There is no distinct "alert orange" or multi-tier alert-red/orange/yellow system — only these three semantic colors (`success` / `warning` / `danger`) exist. Map every alert/status to one of the three; don't introduce new hues.
 
-Font: **Geist** (`next/font/google`, variable `--font-geist-sans`) — already a clean geometric sans, good foundation. Use `font-semibold` for headings/CTAs, `font-medium` for labels/buttons, default weight for body.
+Font: **Poppins** (`next/font/google`, variable `--font-poppins`) — the official typeface per the Manual de Marca. Loaded with weights 400/500/600/700/800. Use `font-semibold` for headings/CTAs, `font-medium` for labels/buttons, default weight for body.
 
 ## Elevation & Motion System (the actual gap to close)
 
@@ -44,9 +44,9 @@ Resting card / static surface:
   border border-[--color-border] bg-[--color-bg-surface]
 
 Floating / overlay (popovers, modals, map info cards, dropdowns):
-  border border-[--color-border] bg-[--color-bg-surface]/90 backdrop-blur-md shadow-lg shadow-black/20
+  shadow-floating border border-[--color-border] bg-[--color-bg-surface]/90 backdrop-blur-md
 ```
-`backdrop-blur` already exists once (map info card) — make it the standard for anything that floats over content, not a one-off.
+`backdrop-blur` and `shadow-floating` are the standard for anything that floats over content, not a one-off. **Never use Tailwind's `shadow-lg`/`shadow-black/XX` for this** — a black shadow has no contrast against the brand's near-black background (`#141412`/`#1D1D1B`), so it reads as invisible no matter the opacity. `.shadow-floating` (defined in `globals.css`) is a large diffuse shadow plus a 1px top inset highlight, calibrated to actually read against a dark ground. Applied in `VehicleTelemetryCard`, `VehicleSheet`, `VehicleSwitcher`'s dropdown, `CommandButton`'s confirm modal, and the map's recenter button.
 
 **Motion — every interactive element gets a transform, not just a color change:**
 ```
