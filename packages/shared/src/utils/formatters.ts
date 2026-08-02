@@ -22,6 +22,26 @@ export function formatVoltage(volts: number | null): string {
   return `${volts.toFixed(1)}V`
 }
 
+export function formatOdometer(km: number | null): string {
+  if (km === null) return '—'
+  return `${Math.round(km).toLocaleString('es')} km`
+}
+
+export function formatEngineHours(hours: number | null): string {
+  if (hours === null) return '—'
+  return `${hours.toFixed(1)} h`
+}
+
+export function formatRpm(rpm: number | null): string {
+  if (rpm === null) return '—'
+  return `${Math.round(rpm).toLocaleString('es')} rpm`
+}
+
+export function formatTemperature(celsius: number | null): string {
+  if (celsius === null) return '—'
+  return `${Math.round(celsius)}°C`
+}
+
 const ONLINE_THRESHOLD_MS = 10 * 60 * 1000
 
 /**

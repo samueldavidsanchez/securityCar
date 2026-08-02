@@ -4,6 +4,7 @@ import type { CommandType } from '@securitycar/shared'
 import { Check, TriangleAlert, type LucideIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
+import { SlideToConfirm } from './SlideToConfirm'
 
 interface Props {
   vehicleId: string
@@ -12,6 +13,12 @@ interface Props {
   icon: LucideIcon
   variant?: 'primary' | 'danger' | 'success' | 'secondary'
   confirmText: string
+  /**
+   * 'slide' reemplaza el botón + modal por un control deslizante: el gesto
+   * en sí es la confirmación. Reservado para acciones físicas irreversibles
+   * (bloquear/desbloquear motor) — solo válido con variant danger/success.
+   */
+  confirmMode?: 'modal' | 'slide'
 }
 
 export function CommandButton({
@@ -21,6 +28,7 @@ export function CommandButton({
   icon: Icon,
   variant = 'secondary',
   confirmText,
+  confirmMode = 'modal',
 }: Props) {
   const [confirming, setConfirming] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -44,12 +52,21 @@ export function CommandButton({
     }
   }
 
+  const useSlide = confirmMode === 'slide' && (variant === 'danger' || variant === 'success')
+
   return (
     <div className="flex flex-col gap-2">
-      <Button variant={variant} onClick={() => setConfirming(true)} loading={loading}>
-        <Icon size={16} strokeWidth={2} aria-hidden />
-        {label}
-      </Button>
+      {useSlide ? (
+        <>
+          <SlideToConfirm label={label} icon={Icon} variant={variant} loading={loading} onConfirm={send} />
+          <p className="text-xs text-[--color-text-muted]">{confirmText}</p>
+        </>
+      ) : (
+        <Button variant={variant} onClick={() => setConfirming(true)} loading={loading}>
+          <Icon size={16} strokeWidth={2} aria-hidden />
+          {label}
+        </Button>
+      )}
 
       {result === 'ok' && (
         <span className="flex items-center gap-1 text-xs text-[--color-success]">

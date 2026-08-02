@@ -51,7 +51,8 @@ export default function SecurityPage() {
             label="Desbloquear motor"
             icon={Unlock}
             variant="success"
-            confirmText="Se permitirá que el motor arranque nuevamente. ¿Continuar?"
+            confirmMode="slide"
+            confirmText="Se permitirá que el motor arranque nuevamente."
           />
         ) : (
           <CommandButton
@@ -60,7 +61,8 @@ export default function SecurityPage() {
             label="Bloquear motor"
             icon={Lock}
             variant="danger"
-            confirmText="El motor no podrá arrancar hasta que lo desbloquees. ¿Continuar?"
+            confirmMode="slide"
+            confirmText="El motor no podrá arrancar hasta que lo desbloquees."
           />
         )}
 

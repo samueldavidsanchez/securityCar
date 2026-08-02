@@ -42,3 +42,46 @@ body {
   box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-accent) 30%, transparent);
   cursor: pointer;
 }
+
+/* ── MapLibre — tema oscuro ──────────────────────────────────────────
+   OSM solo ofrece tiles claros de forma gratuita/sin API key; se invierte
+   el color de los tiles con un filtro (barato, sin proveedor nuevo) en vez
+   de contratar un basemap oscuro. El filtro va SOLO en el <canvas> (donde
+   se pintan los tiles), no en su contenedor, para no afectar al marcador
+   propio ni a los controles, que son elementos DOM aparte.
+   El selector se prefija con .maplibregl-map (la clase raíz que la
+   librería pone en el contenedor) para ganarle en especificidad al CSS
+   por defecto de maplibre-gl sin depender del orden de carga de los
+   stylesheets. */
+.maplibregl-map .maplibregl-canvas {
+  filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.92) saturate(0.9);
+}
+
+.maplibregl-map .maplibregl-ctrl-group {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+.maplibregl-map .maplibregl-ctrl-group button {
+  background: transparent;
+}
+.maplibregl-map .maplibregl-ctrl-group button:not(:disabled):hover {
+  background: var(--color-bg-elevated);
+}
+.maplibregl-map .maplibregl-ctrl-group button + button {
+  border-top: 1px solid var(--color-border);
+}
+.maplibregl-map .maplibregl-ctrl-icon {
+  filter: invert(1);
+}
+
+.maplibregl-map .maplibregl-ctrl-attrib {
+  background: color-mix(in srgb, var(--color-bg-surface) 85%, transparent);
+  color: var(--color-text-muted);
+}
+.maplibregl-map .maplibregl-ctrl-attrib a {
+  color: var(--color-text-secondary);
+}
+.maplibregl-map .maplibregl-ctrl-attrib-button {
+  filter: invert(1);
+}

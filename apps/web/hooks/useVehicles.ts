@@ -1,6 +1,6 @@
 'use client'
 
-import type { GpsPosition, TelemetryData, Vehicle, VehicleStatus } from '@securitycar/shared'
+import type { GpsPosition, TelemetryData, TripSummary, Vehicle, VehicleStatus } from '@securitycar/shared'
 import useSWR from 'swr'
 import { fetcher } from './fetcher'
 
@@ -36,4 +36,12 @@ export function useVehicleTelemetry(vehicleId: string | null) {
     { refreshInterval: POLL_MS }
   )
   return { telemetry: data, error, isLoading }
+}
+
+export function useVehicleTrips(vehicleId: string | null) {
+  const { data, error, isLoading } = useSWR<TripSummary[]>(
+    vehicleId ? `/api/vehicles/${vehicleId}/trips` : null,
+    fetcher
+  )
+  return { trips: data ?? [], error, isLoading }
 }

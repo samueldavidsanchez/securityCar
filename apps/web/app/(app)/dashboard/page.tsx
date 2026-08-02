@@ -1,17 +1,52 @@
 'use client'
 
-import { formatRelativeTime, formatSpeed, formatVoltage, isOnline } from '@securitycar/shared'
-import { BatteryMedium, Clock, KeyRound, Wrench, Zap } from 'lucide-react'
+import type { TripSummary } from '@securitycar/shared'
+import {
+  formatEngineHours,
+  formatOdometer,
+  formatRelativeTime,
+  formatRpm,
+  formatSpeed,
+  formatTemperature,
+  formatVoltage,
+  isOnline,
+} from '@securitycar/shared'
+import { BatteryMedium, Clock, Gauge, KeyRound, Thermometer, Wrench } from 'lucide-react'
 import { useVehicleContext } from '@/components/VehicleProvider'
 import { EmptyState } from '@/components/vehicle/EmptyState'
 import { Card, Stat } from '@/components/ui/Card'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { useNow } from '@/hooks/useNow'
-import { useVehicleStatus } from '@/hooks/useVehicles'
+import { useVehicleTelemetry, useVehicleTrips } from '@/hooks/useVehicles'
+
+const WEEKDAY_LETTERS = ['D', 'L', 'M', 'M', 'J', 'V', 'S']
+
+/** Distancia por día, últimos 7 días (hoy incluido), más reciente al final. */
+function weeklyDistanceBuckets(trips: TripSummary[]): { label: string; km: number }[] {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const day = new Date(today)
+    day.setDate(day.getDate() - (6 - i))
+    return { day, label: WEEKDAY_LETTERS[day.getDay()], km: 0 }
+  })
+
+  for (const trip of trips) {
+    if (!trip.started_at) continue
+    const started = new Date(trip.started_at)
+    started.setHours(0, 0, 0, 0)
+    const bucket = days.find(d => d.day.getTime() === started.getTime())
+    if (bucket) bucket.km += trip.distance_km
+  }
+
+  return days.map(({ label, km }) => ({ label, km }))
+}
 
 export default function DashboardPage() {
   const { selected, isLoading } = useVehicleContext()
-  const { status } = useVehicleStatus(selected?.id ?? null)
+  const { telemetry } = useVehicleTelemetry(selected?.id ?? null)
+  const { trips } = useVehicleTrips(selected?.id ?? null)
   const now = useNow()
 
   if (isLoading)
@@ -29,7 +64,9 @@ export default function DashboardPage() {
     )
   if (!selected) return <EmptyState />
 
-  const online = isOnline(status?.last_seen ?? null, now)
+  const online = isOnline(telemetry?.timestamp ?? null, now)
+  const buckets = weeklyDistanceBuckets(trips)
+  const maxKm = Math.max(...buckets.map(b => b.km), 1)
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4 p-4 md:p-6">
@@ -47,39 +84,78 @@ export default function DashboardPage() {
         </span>
       </div>
 
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-[--color-text-muted]">Ahora</h2>
       <div className="grid grid-cols-2 gap-3">
         <Card>
           <Stat
-            label="Estado del motor"
-            value={status?.engine_blocked ? 'Bloqueado' : 'Normal'}
-            icon={Wrench}
-            accent={status?.engine_blocked ?? false}
-          />
-        </Card>
-        <Card>
-          <Stat
             label="Ignición"
-            value={status?.ignition == null ? '—' : status.ignition ? 'Encendido' : 'Apagado'}
+            value={telemetry?.ignition == null ? '—' : telemetry.ignition ? 'Encendido' : 'Apagado'}
             icon={KeyRound}
           />
         </Card>
         <Card>
-          <Stat label="Velocidad" value={formatSpeed(status?.speed ?? null)} icon={Zap} />
+          <Stat label="Velocidad" value={formatSpeed(telemetry?.speed ?? null)} icon={Gauge} />
         </Card>
         <Card>
-          <Stat label="Batería GPS" value={formatVoltage(status?.battery_voltage ?? null)} icon={BatteryMedium} />
+          <Stat label="Batería GPS" value={formatVoltage(telemetry?.battery_voltage ?? null)} icon={BatteryMedium} />
+        </Card>
+        <Card>
+          <Stat label="Temp. motor" value={formatTemperature(telemetry?.temperature ?? null)} icon={Thermometer} />
         </Card>
       </div>
 
-      <Card>
-        <div className="flex items-center justify-between">
-          <Stat label="Última conexión" value={formatRelativeTime(status?.last_seen ?? null)} icon={Clock} />
-          {status?.position && (
-            <span className="text-xs tabular-nums text-[--color-text-muted]">
-              {status.position.lat.toFixed(5)}, {status.position.lng.toFixed(5)}
-            </span>
-          )}
+      <Card className="flex items-center justify-between">
+        <span className="flex items-center gap-1.5 text-sm font-semibold">
+          <Wrench size={16} strokeWidth={2} aria-hidden />
+          Estado del motor
+        </span>
+        <span
+          className={`text-sm font-semibold ${telemetry?.engine_blocked ? 'text-[--color-danger]' : 'text-[--color-success]'}`}
+        >
+          {telemetry?.engine_blocked ? 'Bloqueado' : 'Normal'}
+        </span>
+      </Card>
+
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-[--color-text-muted]">Acumulados</h2>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="rounded-2xl border border-[--color-border] bg-[--color-bg-elevated] p-4">
+          <Stat label="Odómetro" value={formatOdometer(telemetry?.odometer ?? null)} />
         </div>
+        <div className="rounded-2xl border border-[--color-border] bg-[--color-bg-elevated] p-4">
+          <Stat label="Horas de motor" value={formatEngineHours(telemetry?.engine_hours ?? null)} />
+        </div>
+      </div>
+      {telemetry?.rpm != null && (
+        <Card>
+          <Stat label="RPM" value={formatRpm(telemetry.rpm)} />
+        </Card>
+      )}
+
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-[--color-text-muted]">
+        Distancia · últimos 7 días
+      </h2>
+      <Card className="flex flex-col gap-2.5">
+        <div className="flex h-14 items-end gap-1.5">
+          {buckets.map((b, i) => (
+            <div
+              key={i}
+              className="min-h-1 flex-1 rounded-t rounded-b-sm bg-[--color-accent]"
+              style={{ height: `${Math.max((b.km / maxKm) * 100, 3)}%`, opacity: i === 6 ? 1 : 0.65 }}
+              title={`${b.km.toFixed(1)} km`}
+            />
+          ))}
+        </div>
+        <div className="flex gap-1.5">
+          {buckets.map((b, i) => (
+            <span key={i} className="flex-1 text-center text-[10px] text-[--color-text-muted]">
+              {b.label}
+            </span>
+          ))}
+        </div>
+      </Card>
+
+      <Card>
+        <Stat label="Última conexión" value={formatRelativeTime(telemetry?.timestamp ?? null)} icon={Clock} />
       </Card>
     </div>
   )
