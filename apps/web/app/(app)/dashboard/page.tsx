@@ -51,9 +51,9 @@ export default function DashboardPage() {
 
   if (isLoading)
     return (
-      <div className="mx-auto flex max-w-2xl flex-col gap-4 p-4 md:p-6">
+      <div className="mx-auto flex max-w-2xl flex-col gap-4 p-4 md:max-w-4xl md:p-6">
         <Skeleton className="h-7 w-40" />
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <Skeleton className="h-20 rounded-2xl" />
           <Skeleton className="h-20 rounded-2xl" />
           <Skeleton className="h-20 rounded-2xl" />
@@ -69,7 +69,7 @@ export default function DashboardPage() {
   const maxKm = Math.max(...buckets.map(b => b.km), 1)
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-4 p-4 md:p-6">
+    <div className="mx-auto flex max-w-2xl flex-col gap-4 p-4 md:max-w-4xl md:p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">{selected.alias}</h1>
         <span
@@ -85,7 +85,7 @@ export default function DashboardPage() {
       </div>
 
       <h2 className="text-xs font-semibold uppercase tracking-wide text-(--color-text-muted)">Ahora</h2>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Card>
           <Stat
             label="Ignición"
@@ -117,25 +117,25 @@ export default function DashboardPage() {
       </Card>
 
       <h2 className="text-xs font-semibold uppercase tracking-wide text-(--color-text-muted)">Acumulados</h2>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
         <div className="rounded-2xl border border-(--color-border) bg-(--color-bg-elevated) p-4">
           <Stat label="Odómetro" value={formatOdometer(telemetry?.odometer ?? null)} />
         </div>
         <div className="rounded-2xl border border-(--color-border) bg-(--color-bg-elevated) p-4">
           <Stat label="Horas de motor" value={formatEngineHours(telemetry?.engine_hours ?? null)} />
         </div>
+        {telemetry?.rpm != null && (
+          <div className="rounded-2xl border border-(--color-border) bg-(--color-bg-elevated) p-4">
+            <Stat label="RPM" value={formatRpm(telemetry.rpm)} />
+          </div>
+        )}
       </div>
-      {telemetry?.rpm != null && (
-        <Card>
-          <Stat label="RPM" value={formatRpm(telemetry.rpm)} />
-        </Card>
-      )}
 
       <h2 className="text-xs font-semibold uppercase tracking-wide text-(--color-text-muted)">
         Distancia · últimos 7 días
       </h2>
       <Card className="flex flex-col gap-2.5">
-        <div className="flex h-14 items-end gap-1.5">
+        <div className="flex h-14 items-end gap-1.5 md:h-20">
           {buckets.map((b, i) => (
             <div
               key={i}

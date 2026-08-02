@@ -103,7 +103,7 @@ export default function HistoryPage() {
   if (!selected) return <EmptyState />
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-4 p-4 md:p-6">
+    <div className="mx-auto flex max-w-2xl flex-col gap-4 p-4 md:max-w-3xl md:p-6">
       <div>
         <h1 className="text-xl font-semibold">Historial</h1>
         <p className="text-sm text-(--color-text-muted)">Últimos viajes · {selected.alias}</p>
