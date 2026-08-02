@@ -2,7 +2,7 @@ import { isOnline } from '@securitycar/shared'
 import { LocateFixed } from 'lucide-react-native'
 import { useEffect, useRef } from 'react'
 import { Platform, Pressable, StyleSheet, View } from 'react-native'
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps'
+import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { VehicleSheet } from '@/components/map/VehicleSheet'
 import { EmptyState } from '@/components/EmptyState'
@@ -55,7 +55,7 @@ export default function MapScreen() {
     <View style={styles.container}>
       <MapView
         ref={mapRef}
-        provider={PROVIDER_GOOGLE}
+        provider={PROVIDER_DEFAULT}
         style={StyleSheet.absoluteFill}
         initialRegion={{ latitude: 19.4326, longitude: -99.1332, latitudeDelta: 0.5, longitudeDelta: 0.5 }}
       >

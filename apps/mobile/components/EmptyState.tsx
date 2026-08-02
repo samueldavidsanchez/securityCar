@@ -7,9 +7,10 @@ import { colors } from '@/theme/colors'
 
 export function EmptyState() {
   const router = useRouter()
-  const { error } = useVehicleContext()
+  const { error, mutate } = useVehicleContext()
 
   if (error) {
+    const message = error instanceof Error ? error.message : String(error)
     return (
       <View style={styles.container}>
         <View style={[styles.iconCircle, { backgroundColor: colors.danger + '1A' }]}>
@@ -17,6 +18,8 @@ export function EmptyState() {
         </View>
         <Text style={styles.title}>No se pudieron cargar tus vehículos</Text>
         <Text style={styles.body}>Revisa tu conexión e intenta de nuevo.</Text>
+        <Text style={styles.debug}>{message}</Text>
+        <Button label="Reintentar" onPress={() => mutate()} />
       </View>
     )
   }
@@ -55,4 +58,5 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 18, fontWeight: '700', color: colors.textPrimary },
   body: { color: colors.textMuted, textAlign: 'center', marginBottom: 8 },
+  debug: { color: colors.textMuted, fontSize: 11, fontFamily: 'monospace', textAlign: 'center' },
 })
