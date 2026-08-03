@@ -4,6 +4,30 @@ import { NextResponse, type NextRequest } from 'next/server'
 const PUBLIC_PATHS = ['/login', '/register', '/forgot-password', '/auth/callback']
 
 /**
+ * Dominio dedicado del panel admin (opcional, p.ej. `admin.vivancar.cl`). Es
+ * el MISMO deploy de `apps/web` — no hay proyecto Vercel aparte — solo un
+ * dominio adicional apuntando al mismo proyecto. Si está configurado:
+ *   - en ese host, solo /admin, /api/admin y las rutas de auth responden;
+ *     cualquier otra ruta redirige a /admin/vehicles.
+ *   - en el dominio normal, /admin y /api/admin devuelven 404: el panel solo
+ *     es alcanzable desde ADMIN_HOST.
+ * Es una capa de opacidad, no la barrera de seguridad real — esa sigue
+ * siendo `is_admin()` + RLS (migración 0006), que no depende del dominio.
+ * Sin la env var (dev local, o mientras no se configure el subdominio), el
+ * comportamiento es exactamente el de antes.
+ */
+const ADMIN_HOST = process.env.ADMIN_HOST
+
+function isAdminPath(pathname: string): boolean {
+  return (
+    pathname === '/admin' ||
+    pathname.startsWith('/admin/') ||
+    pathname === '/api/admin' ||
+    pathname.startsWith('/api/admin/')
+  )
+}
+
+/**
  * Solo se acepta una ruta interna. Sin esta comprobación, `?next=https://…`
  * convertiría el login en un redirector abierto hacia un sitio de phishing.
  * `//host` se rechaza porque el navegador lo interpreta como protocolo-relativo.
@@ -44,14 +68,27 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   const { pathname } = request.nextUrl
+  const isPublic = PUBLIC_PATHS.some(p => pathname.startsWith(p))
+
+  if (ADMIN_HOST) {
+    const onAdminHost = request.nextUrl.hostname === ADMIN_HOST
+    if (onAdminHost && !isAdminPath(pathname) && !isPublic) {
+      if (pathname.startsWith('/api')) return new NextResponse(null, { status: 404 })
+      const url = request.nextUrl.clone()
+      url.pathname = '/admin/vehicles'
+      url.search = ''
+      return NextResponse.redirect(url)
+    }
+    if (!onAdminHost && isAdminPath(pathname)) {
+      return new NextResponse(null, { status: 404 })
+    }
+  }
 
   // API routes enforce auth themselves and return JSON 401s — never redirect
   // them to HTML. The session cookie has already been refreshed above.
   if (pathname.startsWith('/api')) {
     return response
   }
-
-  const isPublic = PUBLIC_PATHS.some(p => pathname.startsWith(p))
 
   // Unauthenticated user trying to reach the app → send to login, remembering
   // where they were going. Necesario para los enlaces de invitación: quien
@@ -65,11 +102,13 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Authenticated user on an auth page → send to the map, o al destino que
-  // traía si lo hay.
+  // Authenticated user on an auth page → send to the map (o /admin/vehicles
+  // en el subdominio admin, para no rebotar por el bloqueo de arriba), o al
+  // destino que traía si lo hay.
   if (user && isPublic) {
     const url = request.nextUrl.clone()
-    url.pathname = safeNext(request.nextUrl.searchParams.get('next')) ?? '/map'
+    const fallback = ADMIN_HOST && request.nextUrl.hostname === ADMIN_HOST ? '/admin/vehicles' : '/map'
+    url.pathname = safeNext(request.nextUrl.searchParams.get('next')) ?? fallback
     url.search = ''
     return NextResponse.redirect(url)
   }

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { LayoutGrid, Radio, Users } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
@@ -23,7 +24,19 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!user) redirect('/login')
 
   const { data: isAdmin } = await supabase.rpc('is_admin')
-  if (!isAdmin) redirect('/dashboard')
+  if (!isAdmin) {
+    // En el subdominio admin, /dashboard no existe (proxy.ts lo bloquea ahí):
+    // redirigir causaría un loop. Se muestra un mensaje en vez de redirigir.
+    const host = (await headers()).get('host')
+    if (process.env.ADMIN_HOST && host === process.env.ADMIN_HOST) {
+      return (
+        <div className="flex h-full items-center justify-center p-8 text-center">
+          <p className="text-sm text-(--color-text-muted)">No tenés permisos de administrador.</p>
+        </div>
+      )
+    }
+    redirect('/dashboard')
+  }
 
   return (
     <div className="flex h-full">

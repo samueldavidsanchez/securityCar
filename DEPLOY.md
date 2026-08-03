@@ -55,6 +55,29 @@ vercel deploy --prod     # production
 
 Push the repo to GitHub and import it in the Vercel dashboard (Root Directory = `apps/web`). Every push → preview deployment; merges to the default branch → production. No `vercel.json` changes needed.
 
+### Subdominio admin (opcional)
+
+El panel `/admin` vive en el mismo proyecto Vercel — no hay que crear otro.
+Para servirlo en un subdominio propio (p. ej. `admin.vivancar.cl`):
+
+1. **Vercel → Project → Settings → Domains**: agrega `admin.vivancar.cl` (mismo
+   proyecto, no uno nuevo).
+2. **DNS**: crea el CNAME que te indique Vercel para ese subdominio (mismo
+   proveedor donde ya apunta el dominio principal).
+3. **Env var `ADMIN_HOST`** = `admin.vivancar.cl`, en Production (y Preview si
+   vas a probarlo antes de mergear). Vía `scripts/vercel-push-env.sh` (ya
+   incluida en la plantilla `.env.vercel.example`) o a mano en el dashboard.
+4. Redeploy para que la env var tome efecto (`apps/web/proxy.ts` la lee en
+   build/runtime).
+
+Con `ADMIN_HOST` configurado: `/admin` y `/api/admin/*` solo responden en ese
+subdominio (404 en el dominio normal), y ese subdominio solo sirve `/admin`,
+`/api/admin` y las páginas de login — todo lo demás redirige a
+`/admin/vehicles`. Es una capa de opacidad; la barrera de seguridad real
+sigue siendo `is_admin()` + RLS (migración `0006`), que no depende del
+dominio. Sin la env var, `/admin` sigue funcionando en el dominio normal tal
+cual antes.
+
 ## Database
 
 Before the first deploy, run the migrations in `apps/web/supabase/migrations/` **in order** in the Supabase SQL editor:
