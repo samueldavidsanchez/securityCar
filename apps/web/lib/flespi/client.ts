@@ -136,3 +136,23 @@ export async function sendCommand(
   })
   return result[0] ?? {}
 }
+
+/**
+ * Busca un device en Flespi por su ident (el IMEI), para el alta de
+ * dispositivos desde el panel admin. Mismo enfoque que
+ * `scripts/provision-device.mjs`: se listan todos y se filtra en local — la
+ * sintaxis de `filter` de Flespi es delicada y el número de equipos en esta
+ * fase es pequeño. Usa `requestResult`/`token()` en vez del fetch inline del
+ * script porque esta ruta corre dentro de la app (con FLESPI_TOKEN ya
+ * disponible como server-only), no como CLI standalone.
+ */
+export async function findDeviceByImei(
+  imei: string
+): Promise<{ id: number; name: string | null } | null> {
+  const result = await requestResult('/gw/devices/all?fields=id,name,configuration')
+  const match = result.find(
+    d => String((d.configuration as Record<string, unknown> | undefined)?.ident ?? '').trim() === imei
+  )
+  if (!match) return null
+  return { id: match.id as number, name: (match.name as string | null) ?? null }
+}

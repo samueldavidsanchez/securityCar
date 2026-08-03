@@ -13,6 +13,7 @@ export type AcceptOutcome =
 
 export interface ISharingRepository {
   listMembers(vehicleId: string): Promise<VehicleMember[]>
+  grantMember(vehicleId: string, userId: string, role: InvitableRole): Promise<void>
   updateMemberRole(vehicleId: string, userId: string, role: InvitableRole): Promise<void>
   revokeMember(vehicleId: string, userId: string): Promise<void>
   listInvitations(vehicleId: string): Promise<Invitation[]>
@@ -44,6 +45,20 @@ export class SupabaseSharingRepository implements ISharingRepository {
     const { data, error } = await this.db.rpc('vehicle_members', { p_vehicle: vehicleId })
     if (error) throw error
     return (data ?? []) as VehicleMember[]
+  }
+
+  /**
+   * Otorga acceso directo, sin invitación — solo el panel admin la usa (un
+   * propietario normal siempre pasa por `createInvitation`/`acceptInvitation`,
+   * porque el email de invitación no valida un user_id existente). Vía upsert
+   * porque el admin puede "re-otorgar" un rol distinto a alguien que ya tenía
+   * acceso, sin tener que revocar primero.
+   */
+  async grantMember(vehicleId: string, userId: string, role: InvitableRole): Promise<void> {
+    const { error } = await this.db
+      .from('vehicle_users')
+      .upsert({ vehicle_id: vehicleId, user_id: userId, role }, { onConflict: 'vehicle_id,user_id' })
+    if (error) throw error
   }
 
   async updateMemberRole(

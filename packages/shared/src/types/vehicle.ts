@@ -9,6 +9,19 @@ export interface VehicleDevice {
   status: DeviceStatus
 }
 
+/** Fila completa de `devices` — usada por el panel admin, no por la app de consumidor. */
+export interface Device {
+  id: string
+  imei: string
+  flespi_device_id: number
+  sim_iccid: string | null
+  status: DeviceStatus
+  claim_code: string | null
+  claimed_by: string | null
+  claimed_at: string | null
+  created_at: string
+}
+
 export interface Vehicle {
   id: string
   owner_id: string

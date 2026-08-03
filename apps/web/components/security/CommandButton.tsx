@@ -1,9 +1,10 @@
 'use client'
 
 import type { CommandType } from '@securitycar/shared'
-import { Check, TriangleAlert, type LucideIcon } from 'lucide-react'
+import { Check, type LucideIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { SlideToConfirm } from './SlideToConfirm'
 
 interface Props {
@@ -19,6 +20,9 @@ interface Props {
    * (bloquear/desbloquear motor) — solo válido con variant danger/success.
    */
   confirmMode?: 'modal' | 'slide'
+  /** Permite reusar el componente desde el panel admin, que envía comandos
+   * contra `/api/admin/vehicles/[id]/commands` en vez de la ruta de consumidor. */
+  endpoint?: string
 }
 
 export function CommandButton({
@@ -29,6 +33,7 @@ export function CommandButton({
   variant = 'secondary',
   confirmText,
   confirmMode = 'modal',
+  endpoint,
 }: Props) {
   const [confirming, setConfirming] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -38,7 +43,7 @@ export function CommandButton({
     setLoading(true)
     setResult(null)
     try {
-      const res = await fetch(`/api/vehicles/${vehicleId}/commands`, {
+      const res = await fetch(endpoint ?? `/api/vehicles/${vehicleId}/commands`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type }),
@@ -77,25 +82,14 @@ export function CommandButton({
         <span className="text-xs text-(--color-danger)">No se pudo enviar el comando</span>
       )}
 
-      {confirming && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="shadow-floating w-full max-w-sm rounded-2xl border border-(--color-border) bg-(--color-bg-surface)/95 p-5 backdrop-blur-md">
-            <div className="mb-1 flex items-center gap-2 text-(--color-warning)">
-              <TriangleAlert size={16} strokeWidth={2} aria-hidden />
-              <span className="text-sm font-semibold">Confirmar acción</span>
-            </div>
-            <p className="mb-4 text-sm text-(--color-text-secondary)">{confirmText}</p>
-            <div className="flex gap-2">
-              <Button variant="secondary" className="flex-1" onClick={() => setConfirming(false)}>
-                Cancelar
-              </Button>
-              <Button variant={variant} className="flex-1" onClick={send} loading={loading}>
-                Confirmar
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={confirming}
+        description={confirmText}
+        variant={variant}
+        loading={loading}
+        onConfirm={send}
+        onCancel={() => setConfirming(false)}
+      />
     </div>
   )
 }
