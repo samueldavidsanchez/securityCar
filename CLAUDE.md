@@ -70,6 +70,7 @@ node scripts/provision-device.mjs --imei <IMEI> --flespi-id <ID>   # skip the Fl
 **No automated test suite exists yet.** Verification is manual — see the end-to-end
 QA checklist in `docs/qa-mvp.md` (Spanish). Deployment (Vercel root dir, env push via
 `scripts/vercel-push-env.sh`, EAS mobile builds, Google OAuth setup) is documented in `DEPLOY.md`.
+The current roadmap (MVP → production: CI/CD, webhook secret, EAS builds) is `docs/sprint-2.md`.
 
 ## Next.js 16 conventions (IMPORTANT — differs from older Next.js)
 
@@ -89,11 +90,24 @@ The web app runs **Next.js 16 with Turbopack**. Breaking changes that affect how
 - **Auth transport differs from web.** The web authenticates API routes via session cookies; mobile sends `Authorization: Bearer <supabase access_token>`. Both are handled by `getAuthContext(request)` in `apps/web/lib/api/auth.ts` — when a Bearer token is present it builds a Supabase client with that JWT so Postgres RLS still applies. Any new API route must use `getAuthContext(request)` (never the old cookie-only helper) to stay mobile-compatible.
 - **Google login is native, not the web OAuth flow.** `lib/google-auth.ts` uses `@react-native-google-signin/google-signin` to get an `id_token` and redeems it with `supabase.auth.signInWithIdToken` — no browser, no redirect URI, no deep link. `GoogleSignin.configure` takes the **web** client ID (the Android one lives only in Google Console, matched by keystore SHA-1); passing the Android id causes `DEVELOPER_ERROR`. The button hides itself when `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` is unset.
 - **Expo Go no longer runs this app.** The Google Sign-In native module requires a development build (`npx eas build --profile development`). `expo export` still validates bundling, but it cannot exercise native modules.
+- **Expo config is `app.config.js` (not `app.json`), with EAS profiles in `eas.json`.** Config was migrated to JS so it can read env vars at build time — edit `app.config.js`, don't add an `app.json` back.
 - **Token refresh is tied to AppState.** `lib/supabase.ts` starts/stops `autoRefreshToken` on foreground/background. Without it the refresh timer is frozen while backgrounded and the first API call after ~1h returns 401 despite a valid session. Don't remove the `AppState` listener.
 - **Mobile calls the deployed web API.** `apps/mobile/lib/api.ts` targets `EXPO_PUBLIC_API_URL`. For the Android emulator that's `http://10.0.2.2:3000`; iOS simulator uses `localhost`; a physical device needs the LAN IP. Supabase auth happens directly in the app (`lib/supabase.ts`, session persisted in AsyncStorage).
 - **`typedRoutes` is disabled.** Expo's typed-route generation crashes under npm workspace hoisting (`@expo/cli` hoists to root but `expo-router` stays in `apps/mobile`, breaking `expo-router/_ctx-shared` resolution). Routes use plain string `href`s. Don't re-enable `experiments.typedRoutes` without fixing the hoisting.
 - **Metro monorepo config.** `apps/mobile/metro.config.js` watches the workspace root and adds root `node_modules` to `nodeModulesPaths` so the symlinked shared package bundles. Verify bundling with `npx expo export --platform android`, not just `tsc`.
 - **Brand: vivancar.** Green `#9AB055` accent on near-black `#1D1D1B`. Web tokens live in `apps/web/app/globals.css` (`@theme`); mobile mirrors them in `apps/mobile/theme/colors.ts`. Primary buttons use dark text on green (like the logo). Logos are in `apps/web/public/brand/` and the source `Manual de maraca/`.
+
+## Admin Panel
+
+`(admin)/admin/*` and `/api/admin/*` are an internal staff panel (vehicles, devices, users) for a platform role that doesn't fit `vehicle_users` (owner/driver/viewer are per-vehicle, not platform-wide).
+
+- **Gate is `profiles.is_admin`**, checked via the `is_admin()` `SECURITY DEFINER` RPC. There's no self-serve way to become admin — it's flipped by hand in SQL, deliberately outside the app.
+- **RLS is additive, not a rewrite.** Migration `0006_admin.sql` adds new permissive policies (`... admin read/manage`, gated by `is_admin()`) alongside the existing owner/role policies instead of extending `user_vehicle_role()`/`can_read_device()`. Postgres OR's permissive policies together, so an admin account still sees only their own vehicles in the consumer app (`/dashboard`, `/map`) — `is_admin()` only unlocks `/api/admin/*`. Follow this pattern (new additive policy, not a shared-helper edit) for any future platform-wide role.
+- **`AdminRepository`** wraps admin-only RPCs (`admin_vehicles`, `admin_users`, `admin_user_access` — same `auth.users`-isn't-PostgREST-accessible reason as `vehicle_members`) and reuses `VehicleRepository`/`SharingRepository` for mutations. `admin_vehicles` deliberately does **not** filter `deleted_at is null` — support needs to see soft-deleted vehicles to investigate claims/history.
+- **Command dispatch is shared, not duplicated.** `dispatchCommand()` (`apps/web/lib/api/commands.ts`) holds the rate-limit → log → send-to-Flespi → mark-result sequence used by both `/api/vehicles/:id/commands` and `/api/admin/vehicles/:id/commands`; the 10/min rate limit is per-`userId` with no admin exception.
+- **Layout-level authorization, not proxy-level.** `proxy.ts` only checks that a session exists (same as `(app)/layout.tsx`); `(admin)/admin/layout.tsx` does the actual `is_admin()` RPC check and redirects non-admins. Adding that DB round-trip to the proxy matcher wasn't judged worth it for a handful of internal routes.
+- **`ADMIN_HOST` (optional env var, e.g. `admin.vivancar.cl`)** is an opacity layer on top of the real gate, applied in `proxy.ts`: when set, `/admin` and `/api/admin/*` 404 on the normal domain and are only reachable on that host, and that host serves nothing but `/admin`, `/api/admin`, and auth pages (everything else redirects to `/admin/vehicles`). Same Vercel project/deploy, just an extra domain — unset, behavior is unchanged. Never treat this as the security boundary; that's `is_admin()` + RLS.
+- Device provisioning is also reachable from the admin panel (`POST /api/admin/devices`, same Flespi lookup + `claim_code` generator as `scripts/provision-device.mjs`, factored into `lib/devices/claimCode.ts`), alongside direct-assign-to-user (`/api/admin/devices/:id/assign`) as an alternative to the customer redeeming a claim code themselves.
 
 ## Key Architectural Rules
 
@@ -142,15 +156,31 @@ Every Route Handler returns this shape.
 /api/vehicles/:id/events              GET — business events from vehicle_events (Supabase)
 /api/vehicles/:id/commands            GET history (Supabase), POST send (Flespi)
 /api/profile                          GET, PUT
-/api/notifications/settings           GET, PUT
 /api/webhooks/flespi                  POST — no JWT auth, validate with HMAC secret
+
+/api/admin/vehicles                   GET list/search (all customers), staff only
+/api/admin/vehicles/:id                GET detail, PATCH
+/api/admin/vehicles/:id/users          GET members, POST grant access
+/api/admin/vehicles/:id/users/:userId  PATCH role, DELETE revoke
+/api/admin/vehicles/:id/commands       POST send (reuses dispatchCommand, same rate limit)
+/api/admin/devices                    GET list/search, POST provision (mints claim_code)
+/api/admin/devices/:id                GET, PATCH
+/api/admin/devices/:id/assign         POST — assign directly to a chosen user (bypasses claim_code redemption)
+/api/admin/users                      GET list/search platform users
+/api/admin/users/:id/access           GET vehicles a user can access (owner + shared)
 ```
+
+The `notification_settings` table exists in the schema (migration `0001_init`) but has no
+Route Handler or repository yet — push notifications are explicitly out of scope until
+Sprint 3+ (`docs/sprint-2.md`). Don't assume `/api/notifications/settings` exists.
 
 Auth itself lives outside `/api`: `apps/web/app/auth/callback/route.ts` handles both email/password confirmation and Google OAuth via `exchangeCodeForSession`. It builds the `NextResponse.redirect(...)` first and writes Supabase session cookies directly onto that response object — `cookieStore.set()` from `next/headers` does **not** propagate to a redirect response, so session cookies would silently get dropped if written the "normal" way.
 
 ## Database (Supabase)
 
-Core tables: `profiles`, `devices`, `vehicles`, `vehicle_users`, `invitations`, `command_logs`, `vehicle_events`, `notification_settings`, `claim_attempts`.
+Migrations live in `apps/web/supabase/migrations/` (`0001_init` … `0008_admin_vehicle_lifecycle`) and are applied manually via the Supabase SQL editor — there is no migration runner wired up.
+
+Core tables: `profiles` (includes `is_admin`, migration `0006`), `devices`, `vehicles`, `vehicle_users`, `invitations`, `command_logs`, `vehicle_events`, `notification_settings`, `claim_attempts`.
 
 Row Level Security is enabled on all tables. Every query through the Supabase server client is automatically scoped to the authenticated user. Never bypass RLS with the service role key except in webhook handlers.
 
@@ -185,6 +215,14 @@ FLESPI_WEBHOOK_SECRET=       # HMAC validation for /api/webhooks/flespi
 
 # App
 NEXT_PUBLIC_APP_URL=
+ADMIN_HOST=                  # optional, e.g. admin.vivancar.cl — gates /admin to a dedicated subdomain (see Admin Panel)
+
+# Mobile (apps/mobile)
+EXPO_PUBLIC_API_URL=                 # deployed web API (emulator: http://10.0.2.2:3000)
+EXPO_PUBLIC_SUPABASE_URL=
+EXPO_PUBLIC_SUPABASE_ANON_KEY=
+EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=    # WEB client id (not Android); Google button hides if unset
+GOOGLE_MAPS_API_KEY_ANDROID=         # read by app.config.js at build time
 ```
 
 ## Code Style

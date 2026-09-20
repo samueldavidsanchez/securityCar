@@ -1,4 +1,5 @@
 import Image from 'next/image'
+import Link from 'next/link'
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -17,6 +18,11 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <p className="text-sm text-(--color-text-muted)">Monitoreo y seguridad vehicular</p>
         </div>
         {children}
+        <p className="mt-6 text-center text-xs text-(--color-text-muted)">
+          <Link href="/privacy" className="hover:text-(--color-text-secondary)">
+            Política de privacidad
+          </Link>
+        </p>
       </div>
     </div>
   )

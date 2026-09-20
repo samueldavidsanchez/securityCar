@@ -34,7 +34,20 @@ module.exports = {
     web: {
       favicon: './assets/favicon.png',
     },
-    plugins: ['expo-router', 'expo-status-bar', '@react-native-google-signin/google-signin'],
+    plugins: [
+      'expo-router',
+      'expo-status-bar',
+      '@react-native-google-signin/google-signin',
+      [
+        'expo-splash-screen',
+        {
+          image: './assets/splash-icon.png',
+          imageWidth: 200,
+          resizeMode: 'contain',
+          backgroundColor: '#141412',
+        },
+      ],
+    ],
     extra: {
       router: {},
       eas: {

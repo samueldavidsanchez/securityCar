@@ -161,6 +161,49 @@ aparece y el login por correo sigue funcionando — puedes dejar esto para despu
     { "iosUrlScheme": "com.googleusercontent.apps.<TU_ID_INVERTIDO>" }]
    ```
 
+### Play Store (.aab de producción)
+
+El ícono ya no es el de Expo por defecto: `apps/mobile/assets/{icon,android-icon-foreground,
+android-icon-background,android-icon-monochrome,splash-icon}.png` se generaron a partir del
+monograma (la "v" + el punto verde) de `apps/web/public/brand/logo-white.png`, sobre el fondo de
+marca `#141412`. La splash screen usa el plugin `expo-splash-screen` (configurado en
+`app.config.js`), con el arranque coordinado en `app/_layout.tsx`: `SplashScreen.hideAsync()` se
+llama al montar, entregando el control a las vistas de carga (`bgBase`) que ya existían en
+`app/index.tsx` y `(auth)/_layout.tsx` mientras `useAuth()` resuelve la sesión — no hay pantalla
+en blanco entre medio.
+
+```bash
+cd apps/mobile
+npx eas build --platform android --profile production   # genera el .aab (perfil "production" ya fuerza buildType: app-bundle)
+```
+
+`appVersionSource: "remote"` (en `eas.json`) + `autoIncrement: true` en el perfil `production`
+significa que EAS lleva el `versionCode` — no hay que tocarlo a mano en `app.config.js`.
+
+**Antes de poder enviarlo a la Play Store, falta (fuera del código, en Play Console):**
+
+1. **Cuenta de Google Play Console** (de pago, una vez) y la app creada ahí con el package
+   `com.vivancar.app` (debe coincidir exactamente con `android.package` en `app.config.js`).
+2. **Política de privacidad**: Play exige una URL pública, obligatoria incluso para el cierre
+   inicial ("Internal testing"). No existe todavía ninguna página de privacidad en `apps/web` —
+   hay que publicarla (puede vivir en `apps/web/app/privacy` o como página estática) antes de
+   poder completar la ficha de la app en Play Console.
+3. **Cuestionario de clasificación de contenido** y **formulario de seguridad de datos** en Play
+   Console. La app no pide permiso de ubicación del dispositivo (el GPS del vehículo se lee de
+   Flespi en el servidor, nunca del teléfono — ver *No telemetry storage* en `CLAUDE.md`), pero sí
+   recolecta email/teléfono (Supabase Auth) — hay que declararlo ahí.
+4. **Assets de la ficha**: capturas de pantalla, ícono de 512×512, gráfico de función 1024×500,
+   descripción corta/larga — no generados en este repo.
+5. **Firma del `.aab`**: EAS gestiona el keystore de forma remota (ya existe un backup local
+   `apps/mobile/@samueldavidss__vivancar.bak.jks`, gitignored — no hace falta tocarlo; `eas build`
+   usa el que tiene registrado en su backend, consultable con `npx eas credentials`).
+6. **Envío**: `npx eas submit --platform android --profile production` sube el `.aab` más reciente
+   directo a Play Console — pide una service account JSON con acceso a la Play Developer API
+   (Play Console → Setup → API access) la primera vez; guárdala fuera del repo y pásala con
+   `--service-account-key-path` o agregándola a `submit.production.android
+   .serviceAccountKeyPath` en `eas.json` (no versionado, agregar esa ruta a `.gitignore` si se
+   guarda dentro del repo).
+
 ---
 
 ## Runbook de lanzamiento (orden completo)

@@ -3,6 +3,12 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 const PUBLIC_PATHS = ['/login', '/register', '/forgot-password', '/auth/callback']
 
+// Reachable regardless of session, but — unlike PUBLIC_PATHS — never redirects
+// a logged-in visitor away. Play Store requires a stable, always-reachable
+// privacy policy URL; auth-page semantics (bounce signed-in users to /map)
+// don't apply to a legal page.
+const ALWAYS_ACCESSIBLE_PATHS = ['/privacy']
+
 /**
  * Dominio dedicado del panel admin (opcional, p.ej. `admin.vivancar.cl`). Es
  * el MISMO deploy de `apps/web` — no hay proyecto Vercel aparte — solo un
@@ -69,10 +75,11 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl
   const isPublic = PUBLIC_PATHS.some(p => pathname.startsWith(p))
+  const isAlwaysAccessible = isPublic || ALWAYS_ACCESSIBLE_PATHS.some(p => pathname.startsWith(p))
 
   if (ADMIN_HOST) {
     const onAdminHost = request.nextUrl.hostname === ADMIN_HOST
-    if (onAdminHost && !isAdminPath(pathname) && !isPublic) {
+    if (onAdminHost && !isAdminPath(pathname) && !isAlwaysAccessible) {
       if (pathname.startsWith('/api')) return new NextResponse(null, { status: 404 })
       const url = request.nextUrl.clone()
       url.pathname = '/admin/vehicles'
@@ -93,7 +100,7 @@ export async function proxy(request: NextRequest) {
   // Unauthenticated user trying to reach the app → send to login, remembering
   // where they were going. Necesario para los enlaces de invitación: quien
   // recibe uno normalmente aún no tiene sesión (o ni cuenta).
-  if (!user && !isPublic) {
+  if (!user && !isAlwaysAccessible) {
     const url = request.nextUrl.clone()
     const target = pathname + url.search
     url.pathname = '/login'
