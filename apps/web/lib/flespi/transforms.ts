@@ -247,12 +247,11 @@ export function parseWebhookRecord(raw: Raw): ParsedWebhookRecord {
   const rawType = raw['event.type'] ?? raw['event'] ?? raw['name'] ?? raw['type']
   const mapped = typeof rawType === 'string' ? EVENT_TYPE_MAP[rawType.toLowerCase()] : undefined
 
-  // Fallback: derivar ignición de la telemetría cuando venga el flag pero no un
-  // nombre de evento explícito.
-  const ignition = bool(raw, 'engine.ignition.status')
-  const eventType: VehicleEventType | null =
-    mapped ?? (ignition === true ? 'ignition_on' : ignition === false ? 'ignition_off' : null)
-
+  // Sin fallback desde `engine.ignition.status`: ese flag viene en CADA mensaje
+  // con el motor encendido y generaba un evento por mensaje. El encendido y el
+  // apagado (la transición) los detecta el calculator de ignición de Flespi y
+  // llegan por /api/webhooks/flespi/intervals.
+  const eventType: VehicleEventType | undefined = mapped
   if (!eventType) return { kind: 'ignored' }
 
   const ts = num(raw, 'timestamp', 'server.timestamp')

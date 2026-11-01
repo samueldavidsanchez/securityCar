@@ -72,11 +72,17 @@ QA checklist in `docs/qa-mvp.md` (Spanish). Deployment (Vercel root dir, env pus
 `scripts/vercel-push-env.sh`, EAS mobile builds, Google OAuth setup) is documented in `DEPLOY.md`.
 The current roadmap (MVP → production: CI/CD, webhook secret, EAS builds) is `docs/sprint-2.md`.
 
+## Repo hygiene
+
+- **Untracked secrets live in the working tree and are NOT in `.gitignore`**: `apps/mobile/*.jks` (Android release keystores), `client_secret_*.json`, `secrets google.txt`, `client android.txt`, `Saving Keystore ... SHA-1.txt`. Never `git add -A` / `git add .` here — stage files by explicit path, and add these patterns to `.gitignore` before any bulk staging.
+- Other untracked clutter (`view-admin/`, `view-web/`, `viewapp/` screenshots, root `app.json`/`tsconfig.json`, `Descargas/`, `.docx`/`.pdf` planning docs) is not part of the codebase. The root `app.json`/`tsconfig.json` are stray Expo stubs — real mobile config is `apps/mobile/app.config.js`.
+- `apps/web/CLAUDE.md` and `apps/mobile/CLAUDE.md` only `@AGENTS.md`-import the framework warnings described below; no extra rules there.
+
 ## Next.js 16 conventions (IMPORTANT — differs from older Next.js)
 
 The web app runs **Next.js 16 with Turbopack**. Breaking changes that affect how code must be written here:
 
-- **`middleware.ts` → `proxy.ts`.** Route protection lives in `apps/web/proxy.ts`, exporting a `proxy(request)` function (Node.js runtime, not edge). The matcher excludes static assets and `/api/webhooks`. `/api/*` routes are NOT redirected by the proxy — they enforce auth themselves and return JSON 401s.
+- **`middleware.ts` → `proxy.ts`.** Route protection lives in `apps/web/proxy.ts`, exporting a `proxy(request)` function (Node.js runtime, not edge). The matcher excludes static assets and `/api/webhooks`. `/api/*` routes are NOT redirected by the proxy — they enforce auth themselves and return JSON 401s. Public pages that must load with or without a session (e.g. `/privacy`, the Play Store privacy-policy URL linked from login) go in `ALWAYS_ACCESSIBLE_PATHS`, not the auth-page list (which bounces signed-in users to `/map`).
 - **Async request APIs.** `params`, `cookies()`, `headers()`, `searchParams` are all Promises — always `await` them. Route handlers use the generated `RouteContext<'/api/...'>` helper: `async function GET(req, ctx: RouteContext<'/api/vehicles/[id]'>) { const { id } = await ctx.params }`.
 - **`next lint` removed.** Lint with `eslint` directly (`npm run lint` → `eslint`). Run `npx next typegen` to regenerate route types after adding/renaming routes.
 - **React Compiler purity rules are enforced by ESLint.** No `Date.now()` / `Math.random()` in render (use the `useNow` hook), and no synchronous `setState` in effects that derives from props/state (derive during render with `useMemo` instead — see `VehicleProvider`).
@@ -155,8 +161,13 @@ Every Route Handler returns this shape.
 /api/vehicles/:id/trips/path          GET — raw GPS points for ONE trip window (?from=&to=, max 24h)
 /api/vehicles/:id/events              GET — business events from vehicle_events (Supabase)
 /api/vehicles/:id/commands            GET history (Supabase), POST send (Flespi)
+/api/vehicles/:id/geofences           GET (viewer), POST create (driver) — mirrors the fence into Flespi
+/api/vehicles/:id/geofences/:fenceId  PATCH name/alerts, DELETE (driver)
+/api/vehicles/:id/notifications       GET/PUT the CURRENT user's push preferences for the vehicle (viewer)
+/api/push-tokens                      POST register Expo token, DELETE on sign-out
 /api/profile                          GET, PUT
 /api/webhooks/flespi                  POST — no JWT auth, validate with HMAC secret
+/api/webhooks/flespi/intervals        POST — Flespi platform webhook (geofence + ignition calc intervals), x-webhook-token header
 
 /api/admin/vehicles                   GET list/search (all customers), staff only
 /api/admin/vehicles/:id                GET detail, PATCH
@@ -170,17 +181,31 @@ Every Route Handler returns this shape.
 /api/admin/users/:id/access           GET vehicles a user can access (owner + shared)
 ```
 
-The `notification_settings` table exists in the schema (migration `0001_init`) but has no
-Route Handler or repository yet — push notifications are explicitly out of scope until
-Sprint 3+ (`docs/sprint-2.md`). Don't assume `/api/notifications/settings` exists.
+**Push alerts: geofences + ignition (migration `0009`).** Flespi detects the *transitions*, not us — consistent
+with "no telemetry storage", and it's what keeps ignition from pushing once per telemetry message (the old
+per-message `engine.ignition.status` fallback in `parseWebhookRecord` was removed for that reason). Each `geofences` row is mirrored to Flespi `gw/geofences` with **our uuid as the
+Flespi `name`** (radius in km, points as `{lat, lon}`), attached to the device, and the device is attached
+to one shared calculator (`FLESPI_GEOFENCE_CALC_ID`, selector `geofence`, counter `geofence_name`). Ignition uses a second
+shared calculator (`FLESPI_IGNITION_CALC_ID`, boolean selector on `engine.ignition.status`); a device joins it
+when someone enables an ignition alert. One Flespi *platform webhook* (created by
+`scripts/setup-flespi-alerts.mjs`) posts both calcs' interval `activated`/`deactivated` to
+`/api/webhooks/flespi/intervals`, which picks the event kind by `calc_id`, records it in `vehicle_events` and
+sends Expo push (`lib/push/send.ts`) to owner + `vehicle_users` who want it. Preferences live in
+`notification_settings` per user+vehicle; a row exists only once a switch is touched, otherwise
+`ALERT_DEFAULTS` (`packages/shared/src/types/notification.ts`) applies — ignition defaults OFF, geofences ON.
+Only event types with a real producer belong in `ALERT_EVENT_TYPES`. `EventRepository.record` returns `false`
+on a duplicate so a Flespi retry doesn't re-push. Platform webhooks can't HMAC-sign, hence the header token.
+Push tokens are reassigned across accounts via the `register_push_token` SECURITY DEFINER RPC (a plain upsert
+would hit RLS on another user's row). Mobile registers in `(tabs)/_layout.tsx` and must call
+`unregisterPush()` *before* `supabase.auth.signOut()` (the DELETE needs the Bearer token).
 
 Auth itself lives outside `/api`: `apps/web/app/auth/callback/route.ts` handles both email/password confirmation and Google OAuth via `exchangeCodeForSession`. It builds the `NextResponse.redirect(...)` first and writes Supabase session cookies directly onto that response object — `cookieStore.set()` from `next/headers` does **not** propagate to a redirect response, so session cookies would silently get dropped if written the "normal" way.
 
 ## Database (Supabase)
 
-Migrations live in `apps/web/supabase/migrations/` (`0001_init` … `0008_admin_vehicle_lifecycle`) and are applied manually via the Supabase SQL editor — there is no migration runner wired up.
+Migrations live in `apps/web/supabase/migrations/` (`0001_init` … `0009_geofences_push`) and are applied manually via the Supabase SQL editor — there is no migration runner wired up.
 
-Core tables: `profiles` (includes `is_admin`, migration `0006`), `devices`, `vehicles`, `vehicle_users`, `invitations`, `command_logs`, `vehicle_events`, `notification_settings`, `claim_attempts`.
+Core tables: `profiles` (includes `is_admin`, migration `0006`), `devices`, `vehicles`, `vehicle_users`, `invitations`, `command_logs`, `vehicle_events`, `notification_settings`, `claim_attempts`, `geofences` + `push_tokens` (migration `0009`).
 
 Row Level Security is enabled on all tables. Every query through the Supabase server client is automatically scoped to the authenticated user. Never bypass RLS with the service role key except in webhook handlers.
 
@@ -212,6 +237,9 @@ SUPABASE_SERVICE_ROLE_KEY=   # server-only, webhook handlers only
 # Flespi
 FLESPI_TOKEN=                # server-only, never NEXT_PUBLIC_
 FLESPI_WEBHOOK_SECRET=       # HMAC validation for /api/webhooks/flespi
+FLESPI_GEOFENCE_CALC_ID=     # shared geofence calculator (setup-flespi-alerts.mjs); unset → fences saved, no alerts
+FLESPI_IGNITION_CALC_ID=     # shared ignition calculator; unset → ignition switch saved, never fires
+FLESPI_ALERTS_WEBHOOK_TOKEN= # x-webhook-token for /api/webhooks/flespi/intervals
 
 # App
 NEXT_PUBLIC_APP_URL=
@@ -223,6 +251,7 @@ EXPO_PUBLIC_SUPABASE_URL=
 EXPO_PUBLIC_SUPABASE_ANON_KEY=
 EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=    # WEB client id (not Android); Google button hides if unset
 GOOGLE_MAPS_API_KEY_ANDROID=         # read by app.config.js at build time
+GOOGLE_SERVICES_JSON=                # EAS file env var (FCM for push); local fallback ./google-services.json
 ```
 
 ## Code Style

@@ -27,3 +27,6 @@ scripts/.env.vercel
 Manual de maraca/*.pdf
 
 .vercel
+
+# Firebase (FCM) — credenciales de push, se cargan en EAS como variable de archivo
+apps/mobile/google-services.json

@@ -44,6 +44,25 @@ bash scripts/vercel-push-env.sh preview
 - **Trips.** Crea en el panel de Flespi un *calculator* de tipo trip/intervals y asígnalo a los dispositivos. Copia su id en `FLESPI_TRIPS_CALC_ID`. El código consulta sus `intervals`, no los mensajes crudos.
 - **Webhook.** Configura un webhook/stream en Flespi que apunte a `POST https://<app>/api/webhooks/flespi`, firmado con HMAC-SHA256 usando `FLESPI_WEBHOOK_SECRET` (cabecera `x-signature`). Envía dos clases de payload: confirmaciones de comando (con `command.id`) y eventos tipados (`event.type`: ignición, desconexión, batería baja, geocerca). Los nombres de campo se mapean en `apps/web/lib/flespi/transforms.ts` (`parseWebhookRecord`, `EVENT_TYPE_MAP`) — ajústalos al esquema real que emita tu configuración de Flespi.
 
+### Alertas push (geocercas y encendido)
+
+Flespi detecta las transiciones (entró/salió de una geocerca, se encendió/apagó el motor); la app solo guarda la configuración y recibe los eventos. Cada usuario elige qué alertas recibe por vehículo en Configuración → Notificaciones (encendido/apagado vienen desactivados por defecto).
+
+1. **Migración `0009_geofences_push.sql`** aplicada en el SQL editor de Supabase.
+2. **Token del webhook** (`FLESPI_ALERTS_WEBHOOK_TOKEN`): `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`.
+3. **Calculators + webhook en Flespi** (una vez por entorno, con la app ya desplegada):
+   ```bash
+   FLESPI_TOKEN=... FLESPI_ALERTS_WEBHOOK_TOKEN=<token>      node scripts/setup-flespi-alerts.mjs --url https://<dominio>
+   ```
+   Imprime `FLESPI_GEOFENCE_CALC_ID` y `FLESPI_IGNITION_CALC_ID`. Cárgalos junto con el token en Vercel (prod y preview) y vuelve a desplegar.
+4. **Firebase (push Android):** crea un proyecto en Firebase con la app Android `com.vivancar.app`, descarga `google-services.json` y súbelo a EAS como variable de tipo archivo (`npx eas env:create --name GOOGLE_SERVICES_JSON --type file --value ./google-services.json`). Después sube la clave de servicio FCM V1 en `npx eas credentials` → Android → Push Notifications. Sin esto los tokens se registran pero Expo no puede entregar.
+5. **Nuevo build de EAS**: `expo-notifications` es un módulo nativo.
+
+Notas:
+- Los dispositivos se asignan a cada calculator solos: al de geocercas al crear su primera geocerca; al de ignición cuando alguien activa la alerta de encendido/apagado.
+- Si dos geocercas se superponen, el selector `geofence` de Flespi usa solo la de mayor prioridad.
+- El campo con el nombre de la geocerca (`geofence_name`, counter del calculator) se valida en la primera prueba real. Si el webhook responde `recorded:false` con un payload válido, revisa ese campo en los logs del webhook de Flespi.
+
 ### Deploy
 
 ```bash

@@ -22,4 +22,20 @@ export const FlespiEnvelopeSchema = z.object({
  */
 export const FlespiWebhookSchema = z.union([RawRecord, z.array(RawRecord)])
 
+/**
+ * Cuerpo del webhook de plataforma de los calculators de alertas (geocercas,
+ * encendido). Lo arma el body template del webhook de Flespi (ver
+ * `scripts/setup-flespi-alerts.mjs`) a partir del topic
+ * `flespi/interval/gw/calcs/{calc}/devices/{device}/{event}`: el intervalo
+ * completo va en `payload`. Solo interesan activated/deactivated;
+ * created/updated/deleted llegan por el mismo topic y se ignoran.
+ */
+export const FlespiIntervalWebhookSchema = z.object({
+  event: z.string(),
+  device_id: z.number().int(),
+  calc_id: z.number().int(),
+  payload: RawRecord.nullable(),
+})
+
 export type FlespiRawRecord = z.infer<typeof RawRecord>
+export type FlespiIntervalWebhook = z.infer<typeof FlespiIntervalWebhookSchema>
