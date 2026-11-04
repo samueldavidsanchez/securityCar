@@ -30,3 +30,10 @@ Manual de maraca/*.pdf
 
 # Firebase (FCM) — credenciales de push, se cargan en EAS como variable de archivo
 apps/mobile/google-services.json
+
+# Credenciales locales sueltas en la raíz (nunca al repo)
+*.jks
+client_secret_*.json
+secrets google.txt
+client android.txt
+Saving Keystore*.txt
