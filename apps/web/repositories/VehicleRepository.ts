@@ -19,7 +19,7 @@ export interface IVehicleRepository {
   findById(id: string): Promise<Vehicle | null>
   claim(input: ClaimVehicleInput): Promise<ClaimOutcome>
   update(id: string, userId: string, input: UpdateVehicleInput): Promise<Vehicle | null>
-  remove(id: string, userId: string): Promise<void>
+  remove(id: string): Promise<void>
 }
 
 /**
@@ -112,14 +112,13 @@ export class SupabaseVehicleRepository implements IVehicleRepository {
    * Soft-delete: marca `deleted_at` en vez de borrar la fila, para preservar
    * la auditoría de comandos (ver migración 0005). El índice único parcial
    * sobre device_id libera el equipo para un vehículo futuro.
+   *
+   * Va por el RPC `soft_delete_vehicle` (migración 0010): el cliente ya no
+   * tiene UPDATE sobre `deleted_at`, para que nadie pueda revertir una baja.
+   * El RPC exige dueño (auth.uid()) o admin.
    */
-  async remove(id: string, userId: string): Promise<void> {
-    const { error } = await this.db
-      .from('vehicles')
-      .update({ deleted_at: new Date().toISOString() })
-      .eq('id', id)
-      .eq('owner_id', userId)
-      .is('deleted_at', null)
+  async remove(id: string): Promise<void> {
+    const { error } = await this.db.rpc('soft_delete_vehicle', { p_vehicle: id })
     if (error) throw error
   }
 }

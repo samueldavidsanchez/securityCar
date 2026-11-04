@@ -1,5 +1,5 @@
 import 'server-only'
-import { FlespiEnvelopeSchema } from '@securitycar/shared'
+import { FlespiEnvelopeSchema, type CreateGeofenceInput } from '@securitycar/shared'
 
 const FLESPI_BASE = 'https://flespi.io'
 
@@ -155,4 +155,77 @@ export async function findDeviceByImei(
   )
   if (!match) return null
   return { id: match.id as number, name: (match.name as string | null) ?? null }
+}
+
+// ─── Geocercas ─────────────────────────────────────────────
+
+/**
+ * Geometría en el formato de Flespi (`gw/geofences`): `lon` en vez de `lng` y
+ * radio en KILÓMETROS (el schema de Flespi acepta 0.001–1000).
+ */
+function toFlespiGeometry(fence: CreateGeofenceInput): Record<string, unknown> {
+  if (fence.shape === 'circle') {
+    const { center, radius_m } = fence.geometry
+    return { type: 'circle', center: { lat: center.lat, lon: center.lng }, radius: radius_m / 1000 }
+  }
+  return {
+    type: 'polygon',
+    path: fence.geometry.points.map(p => ({ lat: p.lat, lon: p.lng })),
+  }
+}
+
+/**
+ * Crea el espejo de una geocerca en Flespi. El `name` es NUESTRO uuid: es lo
+ * que el calculator devuelve en el intervalo, y así el webhook resuelve la fila
+ * sin depender del id numérico de Flespi.
+ */
+export async function createGeofence(ourId: string, fence: CreateGeofenceInput): Promise<number> {
+  const result = await requestResult('/gw/geofences', {
+    method: 'POST',
+    body: JSON.stringify([{ name: ourId, geometry: toFlespiGeometry(fence) }]),
+  })
+  const id = result[0]?.id
+  if (typeof id !== 'number') throw new FlespiError('Flespi no devolvió el id de la geocerca', 502)
+  return id
+}
+
+export async function deleteGeofence(flespiGeofenceId: number): Promise<void> {
+  await requestResult(`/gw/geofences/${flespiGeofenceId}`, { method: 'DELETE' })
+}
+
+/**
+ * Asigna el dispositivo a un calculator de alertas compartido (idempotente).
+ * Sin la env var la alerta queda configurada pero nunca dispara: se avisa en
+ * logs en vez de fallar, igual que getTrips con FLESPI_TRIPS_CALC_ID.
+ */
+async function attachDeviceToCalc(envVar: string, deviceId: number): Promise<void> {
+  const calcId = process.env[envVar]
+  if (!calcId) {
+    console.warn(`[flespi] ${envVar} no configurado — la alerta no se disparará`)
+    return
+  }
+  await requestResult(`/gw/calcs/${calcId}/devices/${deviceId}`, { method: 'POST' })
+}
+
+/**
+ * Vincula la geocerca al dispositivo y el dispositivo al calculator de
+ * geocercas. Flespi combina las geocercas del dispositivo con las del
+ * calculator al procesar sus mensajes, así que un único calculator compartido
+ * sirve para todos los clientes.
+ */
+export async function attachGeofenceToDevice(
+  flespiGeofenceId: number,
+  deviceId: number
+): Promise<void> {
+  await requestResult(`/gw/devices/${deviceId}/geofences/${flespiGeofenceId}`, { method: 'POST' })
+  await attachDeviceToCalc('FLESPI_GEOFENCE_CALC_ID', deviceId)
+}
+
+/**
+ * Asigna el dispositivo al calculator de ignición. Se llama cuando alguien
+ * activa la alerta de encendido/apagado: los equipos que nadie quiere vigilar
+ * no generan intervalos ni llamadas al webhook.
+ */
+export async function attachDeviceToIgnitionCalc(deviceId: number): Promise<void> {
+  await attachDeviceToCalc('FLESPI_IGNITION_CALC_ID', deviceId)
 }

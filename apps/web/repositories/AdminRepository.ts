@@ -142,14 +142,12 @@ export class SupabaseAdminRepository implements IAdminRepository {
    * Baja de vehículo, p.ej. al dar de baja al usuario dueño. Soft-delete
    * (mismo patrón que `VehicleRepository.remove`, migración 0005): marca
    * `deleted_at` en vez de borrar la fila, para que `command_logs` sobreviva
-   * como auditoría. Habilitado por la policy "vehicles admin update" (0008).
+   * como auditoría. Desde la migración 0010 va por el RPC
+   * `soft_delete_vehicle`, que acepta al admin (el cliente ya no puede
+   * escribir `deleted_at` directamente).
    */
   async removeVehicle(id: string): Promise<void> {
-    const { error } = await this.db
-      .from('vehicles')
-      .update({ deleted_at: new Date().toISOString() })
-      .eq('id', id)
-      .is('deleted_at', null)
+    const { error } = await this.db.rpc('soft_delete_vehicle', { p_vehicle: id })
     if (error) throw error
   }
 }

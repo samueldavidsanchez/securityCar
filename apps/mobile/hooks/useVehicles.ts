@@ -1,4 +1,4 @@
-import type { GpsPosition, TelemetryData, TripSummary, Vehicle, VehicleStatus } from '@securitycar/shared'
+import type { Geofence, GpsPosition, TelemetryData, TripSummary, Vehicle, VehicleStatus } from '@securitycar/shared'
 import useSWR from 'swr'
 import { fetcher } from '@/lib/api'
 
@@ -42,4 +42,12 @@ export function useVehicleTrips(vehicleId: string | null) {
     fetcher
   )
   return { trips: data ?? [], error, isLoading }
+}
+
+export function useGeofences(vehicleId: string | null) {
+  const { data, error, isLoading, mutate } = useSWR<Geofence[]>(
+    vehicleId ? `/api/vehicles/${vehicleId}/geofences` : null,
+    fetcher
+  )
+  return { geofences: data ?? [], error, isLoading, mutate }
 }

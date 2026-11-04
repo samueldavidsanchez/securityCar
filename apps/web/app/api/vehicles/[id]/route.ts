@@ -38,14 +38,14 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<'/api/vehicl
 
 export async function DELETE(request: NextRequest, ctx: RouteContext<'/api/vehicles/[id]'>) {
   try {
-    const { user, supabase } = await getAuthContext(request)
+    const { supabase } = await getAuthContext(request)
     const { id } = await ctx.params
-    // Comprobación explícita: `remove` filtra por owner_id, así que sin esto un
+    // Comprobación explícita: el RPC de `remove` filtra por dueño, así que sin esto un
     // usuario con acceso compartido recibiría {deleted:true} sin haber borrado
     // nada. Ahora obtiene 403.
     await loadAccessibleVehicle(supabase, id, 'owner')
     const repo = new SupabaseVehicleRepository(supabase)
-    await repo.remove(id, user.id)
+    await repo.remove(id)
     return ok({ deleted: true })
   } catch (err) {
     return handleError(err)

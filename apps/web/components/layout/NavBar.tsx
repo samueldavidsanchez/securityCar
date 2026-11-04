@@ -1,6 +1,6 @@
 'use client'
 
-import { Gauge, History, MapPin, Settings, ShieldCheck } from 'lucide-react'
+import { Gauge, History, MapPin, Radar, Settings, ShieldCheck } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -11,6 +11,7 @@ const NAV = [
   { href: '/dashboard', label: 'Dashboard', icon: Gauge },
   { href: '/security', label: 'Seguridad', icon: ShieldCheck },
   { href: '/history', label: 'Historial', icon: History },
+  { href: '/geofences', label: 'Geocercas', icon: Radar },
   { href: '/settings', label: 'Configuración', icon: Settings },
 ]
 

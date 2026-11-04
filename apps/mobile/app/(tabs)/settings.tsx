@@ -1,18 +1,23 @@
-import { ROLE_LABEL } from '@securitycar/shared'
+import { ALERT_EVENT_TYPES, ALERT_LABEL, ROLE_LABEL } from '@securitycar/shared'
 import { useRouter } from 'expo-router'
+import { Radar } from 'lucide-react-native'
 import { useState } from 'react'
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Alert, ScrollView, StyleSheet, Switch, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Button, Card, Field } from '@/components/ui'
 import { useVehicleContext } from '@/context/VehicleContext'
+import { useNotificationPreferences } from '@/hooks/useNotificationPreferences'
 import { api } from '@/lib/api'
 import { signOutGoogle } from '@/lib/google-auth'
+import { unregisterPush } from '@/lib/push'
 import { supabase } from '@/lib/supabase'
 import { colors } from '@/theme/colors'
 
 export default function Settings() {
   const router = useRouter()
-  const { vehicles, mutate } = useVehicleContext()
+  const { vehicles, selected, mutate } = useVehicleContext()
+  const { preferences, toggle } = useNotificationPreferences(selected?.id ?? null)
+  const [prefError, setPrefError] = useState<string | null>(null)
   const [alias, setAlias] = useState('')
   const [claimCode, setClaimCode] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -60,6 +65,7 @@ export default function Settings() {
     // Sin cerrar también la sesión de Google, el siguiente "Continuar con
     // Google" reentra en silencio con la misma cuenta y no deja cambiar de
     // usuario.
+    await unregisterPush()
     await signOutGoogle()
     await supabase.auth.signOut()
     router.replace('/login')
@@ -113,6 +119,46 @@ export default function Settings() {
           </View>
         </Card>
 
+        {selected && (
+          <Card>
+            <View style={{ gap: 4 }}>
+              <Text style={styles.section}>Notificaciones · {selected.alias}</Text>
+              <Text style={styles.hint}>Elige qué alertas quieres recibir en este teléfono.</Text>
+              {ALERT_EVENT_TYPES.map(type => (
+                <View key={type} style={styles.switchRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.switchTitle}>{ALERT_LABEL[type].title}</Text>
+                    <Text style={styles.hint}>{ALERT_LABEL[type].description}</Text>
+                  </View>
+                  <Switch
+                    value={preferences?.[type] ?? false}
+                    disabled={!preferences}
+                    onValueChange={async () => setPrefError(await toggle(type))}
+                    trackColor={{ true: colors.accent, false: colors.border }}
+                    thumbColor={colors.textPrimary}
+                  />
+                </View>
+              ))}
+              {prefError && <Text style={styles.error}>{prefError}</Text>}
+            </View>
+          </Card>
+        )}
+
+        <Card>
+          <View style={{ gap: 10 }}>
+            <Text style={styles.section}>Geocercas</Text>
+            <Text style={styles.muted}>
+              Recibe una alerta cuando tu vehículo entra o sale de una zona.
+            </Text>
+            <Button
+              label="Administrar geocercas"
+              variant="secondary"
+              icon={Radar}
+              onPress={() => router.push('/geofences')}
+            />
+          </View>
+        </Card>
+
         <Button label="Cerrar sesión" variant="secondary" onPress={signOut} />
       </ScrollView>
     </SafeAreaView>
@@ -137,4 +183,6 @@ const styles = StyleSheet.create({
   },
   vehicleName: { color: colors.textPrimary, fontWeight: '600' },
   remove: { color: colors.danger, fontSize: 13, fontWeight: '600' },
+  switchRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
+  switchTitle: { color: colors.textPrimary, fontSize: 14 },
 })

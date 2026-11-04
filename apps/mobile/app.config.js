@@ -1,3 +1,13 @@
+const fs = require('node:fs')
+
+// Credenciales de Firebase (FCM) para las notificaciones push en Android. En
+// EAS llega como variable de entorno de tipo archivo (GOOGLE_SERVICES_JSON);
+// en local, como ./google-services.json (no se versiona). Sin ninguno de los
+// dos el build sigue funcionando, solo que sin push.
+const googleServicesFile =
+  process.env.GOOGLE_SERVICES_JSON ??
+  (fs.existsSync('./google-services.json') ? './google-services.json' : undefined)
+
 /** @type {import('@expo/config').ExpoConfig} */
 module.exports = {
   expo: {
@@ -22,6 +32,7 @@ module.exports = {
         monochromeImage: './assets/android-icon-monochrome.png',
       },
       predictiveBackGestureEnabled: false,
+      googleServicesFile,
       // Restringida por paquete + SHA-1 del keystore de EAS en Google Cloud
       // Console — el SDK de Android es gratis e ilimitado, la restricción es
       // lo que evita que la key se use fuera de esta app si se filtra.
@@ -38,6 +49,7 @@ module.exports = {
       'expo-router',
       'expo-status-bar',
       '@react-native-google-signin/google-signin',
+      ['expo-notifications', { color: '#9AB055', defaultChannel: 'alerts' }],
       [
         'expo-splash-screen',
         {

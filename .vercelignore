@@ -14,3 +14,17 @@ Manual de maraca
 apps/mobile/dist
 apps/mobile/.expo
 viewapp
+
+# Credenciales locales sueltas (el CLI sube archivos gitignorados)
+*.jks
+**/*.jks
+client_secret_*.json
+secrets google.txt
+client android.txt
+Saving Keystore*.txt
+apps/mobile/google-services.json
+Manual de marca
+view-admin
+view-web
+Descargas
+*.pdf

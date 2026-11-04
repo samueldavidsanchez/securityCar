@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { ROLE_LABEL } from '@securitycar/shared'
 import { useVehicleContext } from '@/components/VehicleProvider'
+import { NotificationPreferencesCard } from '@/components/settings/NotificationPreferencesCard'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
@@ -10,7 +11,7 @@ import { ShareVehicle } from '@/components/vehicle/ShareVehicle'
 import { useVehicles } from '@/hooks/useVehicles'
 
 export default function SettingsPage() {
-  const { vehicles } = useVehicleContext()
+  const { vehicles, selected } = useVehicleContext()
   const { mutate } = useVehicles()
   const [alias, setAlias] = useState('')
   const [claimCode, setClaimCode] = useState('')
@@ -126,6 +127,9 @@ export default function SettingsPage() {
           )
         })}
       </Card>
+
+      {/* Del vehículo elegido en el selector del encabezado. */}
+      {selected && <NotificationPreferencesCard vehicle={selected} />}
     </div>
   )
 }
