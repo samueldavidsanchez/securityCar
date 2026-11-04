@@ -203,7 +203,9 @@ Auth itself lives outside `/api`: `apps/web/app/auth/callback/route.ts` handles 
 
 ## Database (Supabase)
 
-Migrations live in `apps/web/supabase/migrations/` (`0001_init` … `0009_geofences_push`) and are applied manually via the Supabase SQL editor — there is no migration runner wired up.
+Migrations live in `apps/web/supabase/migrations/` (`0001_init` … `0010_lock_client_writes`) and are applied manually via the Supabase SQL editor — there is no migration runner wired up.
+
+**RLS policies scope rows, not columns — so client writes are column-granted (migration `0010`).** Users hold the anon key + their JWT and can PATCH any column PostgREST lets them. `profiles`, `vehicles` and `command_logs` therefore revoke table-level INSERT/UPDATE from `authenticated` and re-grant only the columns the app writes (profile fields; vehicle `alias/plate/make/model/year`; command `status/flespi_response/flespi_command_id`). `is_admin`, `device_id`, `owner_id`, `deleted_at`, `created_at` are not client-writable. Vehicles are created only by `claim_device`/`admin_assign_device` and soft-deleted only via the `soft_delete_vehicle` RPC (owner or admin; no hard DELETE). When adding a column the client must write, add it to the matching `grant update (...)` in a new migration or the write fails with a permission error.
 
 Core tables: `profiles` (includes `is_admin`, migration `0006`), `devices`, `vehicles`, `vehicle_users`, `invitations`, `command_logs`, `vehicle_events`, `notification_settings`, `claim_attempts`, `geofences` + `push_tokens` (migration `0009`).
 
