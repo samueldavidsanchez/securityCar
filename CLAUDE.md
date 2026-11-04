@@ -74,7 +74,7 @@ The current roadmap (MVP → production: CI/CD, webhook secret, EAS builds) is `
 
 ## Repo hygiene
 
-- **Untracked secrets live in the working tree and are NOT in `.gitignore`**: `apps/mobile/*.jks` (Android release keystores), `client_secret_*.json`, `secrets google.txt`, `client android.txt`, `Saving Keystore ... SHA-1.txt`. Never `git add -A` / `git add .` here — stage files by explicit path, and add these patterns to `.gitignore` before any bulk staging.
+- **Untracked secrets live in the working tree**: `apps/mobile/*.jks` (Android release keystores), `client_secret_*.json`, `secrets google.txt`, `client android.txt`, `Saving Keystore ... SHA-1.txt`. They are now listed in `.gitignore` and `.vercelignore` (the Vercel CLI uploads gitignored files, so both are needed), but still stage by explicit path — never `git add -A` / `git add .` — since other local clutter and new credential files can appear.
 - Other untracked clutter (`view-admin/`, `view-web/`, `viewapp/` screenshots, root `app.json`/`tsconfig.json`, `Descargas/`, `.docx`/`.pdf` planning docs) is not part of the codebase. The root `app.json`/`tsconfig.json` are stray Expo stubs — real mobile config is `apps/mobile/app.config.js`.
 - `apps/web/CLAUDE.md` and `apps/mobile/CLAUDE.md` only `@AGENTS.md`-import the framework warnings described below; no extra rules there.
 
