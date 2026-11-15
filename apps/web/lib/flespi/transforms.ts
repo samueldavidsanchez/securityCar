@@ -1,4 +1,5 @@
 import type {
+  CommandType,
   GpsPosition,
   TelemetryData,
   TripSummary,
@@ -269,25 +270,56 @@ export function parseWebhookRecord(raw: Raw): ParsedWebhookRecord {
 }
 
 /**
- * Maps our high-level command types to Flespi gateway command payloads.
- * The exact command name depends on the device protocol; these are the
- * common defaults and can be overridden per-device later.
+ * Comandos de texto de Jimi IoT (Concox), familia GT06. Flespi los envía con el
+ * comando `custom` del protocolo `concox` (su propio ejemplo para "Cut OFF
+ * petrol" es `RELAY,1#`). El equipo responde con texto, que se guarda en
+ * `command_logs.flespi_response`.
+ */
+const CONCOX_TEXT_COMMANDS: Partial<Record<CommandType, string>> = {
+  engine_block: 'RELAY,1#',
+  engine_unblock: 'RELAY,0#',
+  request_location: 'WHERE#',
+  reboot: 'RESET#',
+}
+
+/** Segundos que Flespi espera la respuesta del equipo (rango permitido 5–60). */
+const COMMAND_TIMEOUT_S = 30
+
+/**
+ * Traduce nuestro tipo de comando al comando de Flespi según el protocolo del
+ * equipo (`protocol_name` del device en Flespi). Devuelve null si ese protocolo
+ * no tiene el comando — p. ej. `wialon-retranslator`, que solo recibe datos
+ * reenviados desde otra plataforma y no acepta comandos. Teltonika llegará en
+ * una etapa posterior.
  */
 export function toFlespiCommand(
-  type: string,
-  payload?: Record<string, unknown>
-): Record<string, unknown> {
-  switch (type) {
-    case 'engine_block':
-      return { name: 'output_control', properties: { output: 1, value: 1 } }
-    case 'engine_unblock':
-      return { name: 'output_control', properties: { output: 1, value: 0 } }
-    case 'request_location':
-      return { name: 'get_position' }
-    case 'reboot':
-      return { name: 'reboot' }
-    case 'custom':
-    default:
-      return payload ?? { name: type }
+  type: CommandType,
+  protocol: string,
+  payload?: Record<string, unknown> | null
+): Record<string, unknown> | null {
+  if (protocol === 'concox') {
+    if (type === 'custom') {
+      const text = payload?.payload
+      return typeof text === 'string' && text
+        ? { name: 'custom', properties: { payload: text }, timeout: COMMAND_TIMEOUT_S }
+        : null
+    }
+    const text = CONCOX_TEXT_COMMANDS[type]
+    return text ? { name: 'custom', properties: { payload: text }, timeout: COMMAND_TIMEOUT_S } : null
   }
+  return null
+}
+
+/**
+ * Texto legible de la respuesta del equipo a un comando en tiempo real. La
+ * forma de `response` depende del protocolo, así que se busca defensivamente.
+ */
+export function commandResponseText(response: unknown): string | null {
+  if (typeof response === 'string') return response || null
+  if (!response || typeof response !== 'object') return null
+  const r = response as Raw
+  for (const k of ['payload', 'text', 'message', 'response']) {
+    if (typeof r[k] === 'string' && r[k]) return r[k] as string
+  }
+  return null
 }

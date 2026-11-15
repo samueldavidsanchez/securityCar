@@ -1,13 +1,13 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { SendCommandInput, Vehicle } from '@securitycar/shared'
-import { sendCommand } from '@/lib/flespi/client'
-import { toFlespiCommand } from '@/lib/flespi/transforms'
+import { getDeviceProtocol, sendCommand } from '@/lib/flespi/client'
+import { commandResponseText, toFlespiCommand } from '@/lib/flespi/transforms'
 import { SupabaseCommandRepository } from '@/repositories/CommandRepository'
 
 const COMMAND_RATE_LIMIT_PER_MINUTE = 10
 
 export type DispatchCommandResult =
-  | { ok: true; logId: string }
+  | { ok: true; logId: string; response: string | null }
   | { ok: false; error: string; status: number }
 
 /**
@@ -44,13 +44,31 @@ export async function dispatchCommand(
   })
 
   try {
-    const flespiCmd = toFlespiCommand(parsed.type, parsed.payload)
-    const response = await sendCommand(vehicle.device.flespi_device_id, flespiCmd)
-    // Id que Flespi asigna al comando encolado: permite al webhook casar el
-    // ACK del dispositivo y pasar el log a 'confirmed'.
-    const flespiCommandId = typeof response.id === 'number' ? response.id : null
-    await repo.markResult(log.id, 'sent', response, flespiCommandId)
-    return { ok: true, logId: log.id }
+    const deviceId = vehicle.device.flespi_device_id
+    const protocol = await getDeviceProtocol(deviceId)
+    const flespiCmd = protocol ? toFlespiCommand(parsed.type, protocol, parsed.payload) : null
+    if (!flespiCmd) {
+      await repo.markResult(log.id, 'failed', { error: `Comando no soportado (${protocol ?? 'sin protocolo'})` })
+      return { ok: false, error: 'Este equipo no admite ese comando.', status: 422 }
+    }
+
+    // Tiempo real: Flespi devuelve la respuesta del equipo en esta misma
+    // llamada, así que el resultado es definitivo (confirmed / failed).
+    const result = await sendCommand(deviceId, flespiCmd)
+    const flespiCommandId = typeof result.id === 'number' ? result.id : null
+    const responseText = commandResponseText(result.response)
+
+    if (result.executed !== true) {
+      await repo.markResult(log.id, 'failed', result, flespiCommandId)
+      return {
+        ok: false,
+        error: 'El equipo no respondió. Puede estar sin señal o apagado; inténtalo de nuevo.',
+        status: 504,
+      }
+    }
+
+    await repo.markResult(log.id, 'confirmed', result, flespiCommandId)
+    return { ok: true, logId: log.id, response: responseText }
   } catch (dispatchErr) {
     await repo.markResult(log.id, 'failed', {
       error: dispatchErr instanceof Error ? dispatchErr.message : 'unknown',

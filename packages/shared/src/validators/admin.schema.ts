@@ -10,13 +10,14 @@ export const AdminGrantMemberSchema = z.object({
 /**
  * Alta de dispositivo desde el panel admin — misma validación de IMEI que
  * `scripts/provision-device.mjs`. `flespi_device_id` es opcional: si se omite,
- * la ruta busca el device en Flespi por IMEI (igual que el script con
- * --flespi-id ausente).
+ * la ruta busca el device en Flespi por IMEI y, si no existe, lo CREA con el
+ * tipo de `protocol` (etapa 1: solo Concox).
  */
 export const AdminProvisionDeviceSchema = z.object({
   imei: z.string().regex(/^\d{15}$/, 'IMEI debe ser de 15 dígitos'),
   sim_iccid: z.string().max(30).nullable().optional(),
   flespi_device_id: z.number().int().positive().optional(),
+  protocol: z.enum(['concox']).default('concox'),
 })
 
 export const AdminUpdateDeviceSchema = z.object({

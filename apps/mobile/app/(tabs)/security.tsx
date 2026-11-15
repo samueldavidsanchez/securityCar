@@ -26,13 +26,18 @@ export default function Security() {
   async function sendCommand(type: CommandType) {
     setPending(type)
     try {
-      await api(`/api/vehicles/${selected!.id}/commands`, {
+      const result = await api<{ response: string | null }>(`/api/vehicles/${selected!.id}/commands`, {
         method: 'POST',
         body: JSON.stringify({ type }),
       })
-      Alert.alert('Listo', 'Comando enviado correctamente.')
-    } catch {
-      Alert.alert('Error', 'No se pudo enviar el comando.')
+      Alert.alert(
+        'Confirmado',
+        result.response
+          ? `El equipo respondió: ${result.response}`
+          : 'El equipo confirmó el comando.'
+      )
+    } catch (err) {
+      Alert.alert('Error', err instanceof Error ? err.message : 'No se pudo enviar el comando.')
     } finally {
       setPending(null)
     }

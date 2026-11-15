@@ -124,7 +124,21 @@ export async function getTripRoute(
 }
 
 /**
- * Send a command to a device via the Flespi gateway.
+ * Protocolo del equipo en Flespi (`concox`, `teltonika`, `wialon-retranslator`…).
+ * Decide qué comando se envía: cada protocolo tiene su propio juego.
+ */
+export async function getDeviceProtocol(deviceId: number): Promise<string | null> {
+  const result = await requestResult(`/gw/devices/${deviceId}?fields=protocol_name`)
+  const name = result[0]?.protocol_name
+  return typeof name === 'string' ? name : null
+}
+
+/**
+ * Envía un comando EN TIEMPO REAL (`/commands`, no `/commands-queue`): Flespi
+ * lo manda por la conexión activa y espera la respuesta del equipo hasta el
+ * `timeout` del comando. El resultado trae `executed` (si el equipo lo
+ * ejecutó) y `response`, así que el comando se confirma en la misma llamada,
+ * sin webhook. Si el equipo no está conectado, Flespi lo indica de inmediato.
  */
 export async function sendCommand(
   deviceId: number,
@@ -155,6 +169,50 @@ export async function findDeviceByImei(
   )
   if (!match) return null
   return { id: match.id as number, name: (match.name as string | null) ?? null }
+}
+
+/**
+ * Tipo de dispositivo de Flespi por protocolo de hardware. Etapa 1: solo
+ * Concox (Jimi IoT genérico, protocolo `concox`). Teltonika se agrega aquí.
+ */
+const FLESPI_DEVICE_TYPE_ID = { concox: 16 } as const
+export type HardwareProtocol = keyof typeof FLESPI_DEVICE_TYPE_ID
+
+/** Un año de historial en Flespi: alcanza para viajes y rutas. */
+const DEVICE_MESSAGES_TTL_S = 365 * 24 * 3600
+
+/**
+ * Da de alta el equipo en Flespi con `ident` = IMEI. Cuando el GPS se conecte
+ * al channel del protocolo, Flespi asocia sus mensajes a este device por el
+ * ident — por eso se crea ANTES de instalar el equipo.
+ */
+export async function createDevice(
+  imei: string,
+  protocol: HardwareProtocol,
+  name: string
+): Promise<number> {
+  const result = await requestResult('/gw/devices', {
+    method: 'POST',
+    body: JSON.stringify([
+      {
+        name,
+        device_type_id: FLESPI_DEVICE_TYPE_ID[protocol],
+        configuration: { ident: imei },
+        messages_ttl: DEVICE_MESSAGES_TTL_S,
+      },
+    ]),
+  })
+  const id = result[0]?.id
+  if (typeof id !== 'number') throw new FlespiError('Flespi no devolvió el id del dispositivo', 502)
+  return id
+}
+
+/**
+ * Asigna el equipo al calculator de viajes. Sin esto, History queda vacío
+ * para equipos nuevos. Idempotente; sin la env var se avisa y se sigue.
+ */
+export async function attachDeviceToTripsCalc(deviceId: number): Promise<void> {
+  await attachDeviceToCalc('FLESPI_TRIPS_CALC_ID', deviceId)
 }
 
 // ─── Geocercas ─────────────────────────────────────────────

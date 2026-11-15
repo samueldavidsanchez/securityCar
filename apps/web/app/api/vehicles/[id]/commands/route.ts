@@ -43,7 +43,7 @@ export async function POST(
 
     const result = await dispatchCommand(supabase, user.id, vehicle, parsed.data)
     if (!result.ok) return fail(result.error, result.status)
-    return ok({ logId: result.logId, status: 'sent' }, 202)
+    return ok({ logId: result.logId, status: 'confirmed', response: result.response })
   } catch (err) {
     return handleError(err)
   }

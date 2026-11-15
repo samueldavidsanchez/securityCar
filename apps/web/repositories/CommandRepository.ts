@@ -12,7 +12,7 @@ export interface ICommandRepository {
   logPending(input: CreateCommandLog): Promise<CommandLog>
   markResult(
     id: string,
-    status: 'sent' | 'failed',
+    status: 'sent' | 'confirmed' | 'failed',
     flespiResponse: Record<string, unknown> | null,
     flespiCommandId?: number | null
   ): Promise<void>
@@ -39,7 +39,7 @@ export class SupabaseCommandRepository implements ICommandRepository {
 
   async markResult(
     id: string,
-    status: 'sent' | 'failed',
+    status: 'sent' | 'confirmed' | 'failed',
     flespiResponse: Record<string, unknown> | null,
     flespiCommandId?: number | null
   ): Promise<void> {

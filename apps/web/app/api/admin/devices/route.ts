@@ -4,7 +4,7 @@ import { getAuthContext } from '@/lib/api/auth'
 import { requireAdmin } from '@/lib/api/admin'
 import { fail, handleError, ok } from '@/lib/api/response'
 import { generateClaimCode } from '@/lib/devices/claimCode'
-import { findDeviceByImei } from '@/lib/flespi/client'
+import { attachDeviceToTripsCalc, createDevice, findDeviceByImei } from '@/lib/flespi/client'
 import { SupabaseAdminRepository } from '@/repositories/AdminRepository'
 
 /** Dispositivos de todos los clientes, con búsqueda opcional. Solo staff. */
@@ -37,14 +37,21 @@ export async function POST(request: NextRequest) {
       return fail(parsed.error.issues[0]?.message ?? 'Datos inválidos', 422)
     }
 
+    // Si el equipo no existe en Flespi se crea aquí: el flujo de alta es
+    // "registrar el IMEI en el admin → instalar el GPS apuntando al channel",
+    // y Flespi asocia los mensajes al device por su ident cuando conecte.
     let flespiDeviceId = parsed.data.flespi_device_id ?? null
+    let flespiCreated = false
     if (!flespiDeviceId) {
-      const device = await findDeviceByImei(parsed.data.imei)
-      if (!device) {
-        return fail(`No hay ningún dispositivo con IMEI ${parsed.data.imei} en Flespi`, 404)
+      const existing = await findDeviceByImei(parsed.data.imei)
+      if (existing) {
+        flespiDeviceId = existing.id
+      } else {
+        flespiDeviceId = await createDevice(parsed.data.imei, parsed.data.protocol, parsed.data.imei)
+        flespiCreated = true
       }
-      flespiDeviceId = device.id
     }
+    await attachDeviceToTripsCalc(flespiDeviceId)
 
     const claimCode = generateClaimCode()
     const repo = new SupabaseAdminRepository(supabase)
@@ -55,7 +62,10 @@ export async function POST(request: NextRequest) {
         sim_iccid: parsed.data.sim_iccid ?? null,
         claim_code: claimCode,
       })
-      return ok({ device: created, claim_code: formatClaimCode(claimCode) }, 201)
+      return ok(
+        { device: created, claim_code: formatClaimCode(claimCode), flespi_created: flespiCreated },
+        201
+      )
     } catch (err) {
       if (err instanceof Error && 'code' in err && (err as { code?: string }).code === '23505') {
         return fail(`El IMEI ${parsed.data.imei} o el device de Flespi ya está provisionado`, 409)
