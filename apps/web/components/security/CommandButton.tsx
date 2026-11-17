@@ -38,17 +38,24 @@ export function CommandButton({
   const [confirming, setConfirming] = useState(false)
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<'ok' | 'error' | null>(null)
+  const [detail, setDetail] = useState<string | null>(null)
 
   async function send() {
     setLoading(true)
     setResult(null)
+    setDetail(null)
     try {
       const res = await fetch(endpoint ?? `/api/vehicles/${vehicleId}/commands`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type }),
       })
+      const json = (await res.json().catch(() => null)) as {
+        data: { response: string | null } | null
+        error: string | null
+      } | null
       setResult(res.ok ? 'ok' : 'error')
+      setDetail(res.ok ? (json?.data?.response ?? null) : (json?.error ?? null))
     } catch {
       setResult('error')
     } finally {
@@ -75,11 +82,12 @@ export function CommandButton({
 
       {result === 'ok' && (
         <span className="flex items-center gap-1 text-xs text-(--color-success)">
-          <Check size={13} strokeWidth={2.5} aria-hidden /> Comando enviado
+          <Check size={13} strokeWidth={2.5} aria-hidden /> Confirmado por el equipo
+          {detail && <span className="text-(--color-text-muted)"> · {detail}</span>}
         </span>
       )}
       {result === 'error' && (
-        <span className="text-xs text-(--color-danger)">No se pudo enviar el comando</span>
+        <span className="text-xs text-(--color-danger)">{detail ?? 'No se pudo enviar el comando'}</span>
       )}
 
       <ConfirmDialog

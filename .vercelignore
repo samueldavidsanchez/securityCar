@@ -9,7 +9,6 @@
 # Artefactos locales y material pesado irrelevante para el build web
 .claude
 .turbo
-Manual de maraca
 *.docx
 apps/mobile/dist
 apps/mobile/.expo

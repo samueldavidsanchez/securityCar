@@ -65,6 +65,10 @@ npx tsc --noEmit        # typecheck
 # Provision hardware (mints a single-use claim_code the client redeems via POST /api/vehicles)
 node scripts/provision-device.mjs --imei <IMEI> [--iccid <ICCID>]
 node scripts/provision-device.mjs --imei <IMEI> --flespi-id <ID>   # skip the Flespi lookup
+
+# One-time per environment: create the Flespi geofence + ignition calculators and the
+# platform webhook; prints FLESPI_GEOFENCE_CALC_ID / FLESPI_IGNITION_CALC_ID for Vercel
+node scripts/setup-flespi-alerts.mjs --url https://<deployed-app>   # needs FLESPI_TOKEN, FLESPI_ALERTS_WEBHOOK_TOKEN
 ```
 
 **No automated test suite exists yet.** Verification is manual — see the end-to-end
@@ -101,7 +105,7 @@ The web app runs **Next.js 16 with Turbopack**. Breaking changes that affect how
 - **Mobile calls the deployed web API.** `apps/mobile/lib/api.ts` targets `EXPO_PUBLIC_API_URL`. For the Android emulator that's `http://10.0.2.2:3000`; iOS simulator uses `localhost`; a physical device needs the LAN IP. Supabase auth happens directly in the app (`lib/supabase.ts`, session persisted in AsyncStorage).
 - **`typedRoutes` is disabled.** Expo's typed-route generation crashes under npm workspace hoisting (`@expo/cli` hoists to root but `expo-router` stays in `apps/mobile`, breaking `expo-router/_ctx-shared` resolution). Routes use plain string `href`s. Don't re-enable `experiments.typedRoutes` without fixing the hoisting.
 - **Metro monorepo config.** `apps/mobile/metro.config.js` watches the workspace root and adds root `node_modules` to `nodeModulesPaths` so the symlinked shared package bundles. Verify bundling with `npx expo export --platform android`, not just `tsc`.
-- **Brand: vivancar.** Green `#9AB055` accent on near-black `#1D1D1B`. Web tokens live in `apps/web/app/globals.css` (`@theme`); mobile mirrors them in `apps/mobile/theme/colors.ts`. Primary buttons use dark text on green (like the logo). Logos are in `apps/web/public/brand/` and the source `Manual de maraca/`.
+- **Brand: vivancar.** Green `#9AB055` accent on near-black `#1D1D1B`. Web tokens live in `apps/web/app/globals.css` (`@theme`); mobile mirrors them in `apps/mobile/theme/colors.ts`. Primary buttons use dark text on green (like the logo). Logos are in `apps/web/public/brand/` and the source `Manual de marca/`.
 
 ## Admin Panel
 
@@ -133,7 +137,7 @@ The web app runs **Next.js 16 with Turbopack**. Breaking changes that affect how
 
 **Flespi token is server-only.** The `FLESPI_TOKEN` env var is used exclusively inside Next.js API Routes (`/api/*`). It must never be passed to the client.
 
-**Repository Pattern.** All database operations go through repository classes (`VehicleRepository`, `CommandRepository`, `EventRepository`, `SharingRepository`). This allows swapping Supabase for another PostgreSQL provider without touching business logic.
+**Repository Pattern.** All database operations go through repository classes in `apps/web/repositories/` (`Vehicle`, `Command`, `Event`, `Sharing`, `Geofence`, `NotificationSettings`, `PushToken`, `Admin` — each a `Supabase*Repository` implementation). This allows swapping Supabase for another PostgreSQL provider without touching business logic.
 
 **Shared types via `packages/shared`.** Both `apps/web` and `apps/mobile` import types, Zod schemas, and utility functions from `packages/shared`. Never duplicate types between apps.
 
@@ -220,7 +224,7 @@ Row Level Security is enabled on all tables. Every query through the Supabase se
 - Latest telemetry: `GET /gw/devices/{flespi_device_id}/messages` with field filter
 - Trips: `GET /gw/calcs/{FLESPI_TRIPS_CALC_ID}/devices/{id}/intervals/all` — a **trip calculator**, never raw `/messages` over the *full* history range (that returns tens of thousands of raw points, times out, and isn't trips). `getTrips` returns `[]` when `FLESPI_TRIPS_CALC_ID` is unset so History degrades to "no trips" instead of erroring.
 - Trip path: `GET /gw/devices/{id}/messages?data={from,to,fields}` (`getTripRoute`, used by `/api/vehicles/:id/trips/path`) IS the one legitimate raw-`/messages` call — bounded to a single trip's `begin`/`end` window with a hard 24h cap, so it's hundreds of points, not the full history. Don't widen that window or reuse the pattern for anything but drawing one trip's path.
-- Send command: `POST /gw/devices/{flespi_device_id}/commands` — the queued command's `id` is saved to `command_logs.flespi_command_id` so the webhook can correlate the ACK.
+- Send command: `POST /gw/devices/{flespi_device_id}/commands` is the **real-time** endpoint (not `/commands-queue`): Flespi waits up to the command's `timeout` (5–60s) for the device and returns `executed` + `response` in the same call, so `dispatchCommand` marks the log `confirmed`/`failed` immediately — no webhook needed for the ACK. Commands are protocol-specific: `toFlespiCommand(type, protocol)` looks up the device's `protocol_name` in Flespi and returns `null` (→ 422) when unsupported. Only `concox` is mapped today (text commands via `custom`, e.g. `RELAY,1#` block / `RELAY,0#` unblock); `wialon-retranslator` devices (data relayed from another platform) can never take commands. Teltonika is a later phase.
 - Incoming events: Flespi → `POST /api/webhooks/flespi` (validate HMAC). The handler does exactly two things via the service client: confirm commands (`command_logs` → `confirmed`) and record typed business events into `vehicle_events`. Raw telemetry with no recognizable event type is ignored — **never persist telemetry**. `vehicle_events` is the deliberate exception: interpreted business facts (disconnect, low battery, ignition, geofence), not GPS data.
 - All Flespi REST responses are validated with `FlespiEnvelopeSchema` (structure only — field names vary by protocol, so `transforms.ts` extracts each field defensively via `num()`/`bool()` candidate-key lookups).
 
@@ -238,6 +242,7 @@ SUPABASE_SERVICE_ROLE_KEY=   # server-only, webhook handlers only
 
 # Flespi
 FLESPI_TOKEN=                # server-only, never NEXT_PUBLIC_
+FLESPI_TRIPS_CALC_ID=        # trip calculator for History; unset → getTrips returns []
 FLESPI_WEBHOOK_SECRET=       # HMAC validation for /api/webhooks/flespi
 FLESPI_GEOFENCE_CALC_ID=     # shared geofence calculator (setup-flespi-alerts.mjs); unset → fences saved, no alerts
 FLESPI_IGNITION_CALC_ID=     # shared ignition calculator; unset → ignition switch saved, never fires
@@ -252,6 +257,7 @@ EXPO_PUBLIC_API_URL=                 # deployed web API (emulator: http://10.0.2
 EXPO_PUBLIC_SUPABASE_URL=
 EXPO_PUBLIC_SUPABASE_ANON_KEY=
 EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=    # WEB client id (not Android); Google button hides if unset
+EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=    # optional, iOS Google Sign-In
 GOOGLE_MAPS_API_KEY_ANDROID=         # read by app.config.js at build time
 GOOGLE_SERVICES_JSON=                # EAS file env var (FCM for push); local fallback ./google-services.json
 ```

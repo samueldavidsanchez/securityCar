@@ -20,6 +20,7 @@ export default function AdminDevicesPage() {
   const [provisionError, setProvisionError] = useState<string | null>(null)
   const [provisioning, setProvisioning] = useState(false)
   const [newCode, setNewCode] = useState<string | null>(null)
+  const [flespiCreated, setFlespiCreated] = useState(false)
   const [retiring, setRetiring] = useState<string | null>(null)
 
   const [assigning, setAssigning] = useState<Device | null>(null)
@@ -65,6 +66,7 @@ export default function AdminDevicesPage() {
   async function provisionDevice() {
     setProvisionError(null)
     setNewCode(null)
+    setFlespiCreated(false)
     setProvisioning(true)
     const res = await fetch('/api/admin/devices', {
       method: 'POST',
@@ -78,6 +80,7 @@ export default function AdminDevicesPage() {
       return
     }
     setNewCode(json.data.claim_code)
+    setFlespiCreated(Boolean(json.data.flespi_created))
     setImei('')
     setIccid('')
     mutate()
@@ -134,6 +137,7 @@ export default function AdminDevicesPage() {
         {newCode && (
           <p className="text-sm text-(--color-success)">
             Código de activación: <strong>{newCode}</strong> — entrégalo al cliente, es de un solo uso.
+            {flespiCreated && ' Equipo creado en Flespi: configura el GPS para reportar al channel Concox.'}
           </p>
         )}
       </Card>
